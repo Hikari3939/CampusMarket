@@ -1,0 +1,75 @@
+/* src/style.css */
+:root {
+  /* 东南大学 VIS 核心色彩 */
+  --seu-green: #587558;
+  --seu-yellow: #fdd000;
+  --seu-black: #231815;
+  
+  /* 东南大学 VIS 辅助色彩 */
+  --seu-orange: #F6AB00;
+  --seu-dark-blue: #151E49;
+
+  /* UI 辅助色 */
+  --bg-color: #f4f6f8;
+  --text-main: #333333;
+  --text-light: #999999;
+  
+  /* 覆盖 Element Plus 的主色调为东南绿 */
+  --el-color-primary: var(--seu-green) !important;
+  --el-color-primary-light-3: #799179 !important; /* 减轻的绿色，用于悬浮 */
+  --el-color-primary-dark-2: #465e46 !important; /* 加深的绿色，用于点击 */
+
+  /* 定义全局卡片阴影规范，体现层级感 */
+  --box-shadow-base: 0 4px 12px rgba(35, 24, 21, 0.05); /* 基于 SEU-Black 的极轻微阴影 */
+  --box-shadow-hover: 0 8px 24px rgba(35, 24, 21, 0.12);
+  --border-radius-base: 8px;
+}
+
+/* 扁平化全局 Reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: var(--seu-green);
+}
+
+/* 覆盖 Element Plus 默认样式，趋向无边框极简风 */
+.el-card {
+  border: none !important;
+  box-shadow: var(--box-shadow-base) !important;
+  border-radius: var(--border-radius-base) !important;
+  transition: all 0.3s ease;
+}
+.el-card:hover {
+  box-shadow: var(--box-shadow-hover) !important;
+  transform: translateY(-2px);
+}
+
+.el-button--primary {
+  background-color: var(--seu-green) !important;
+  border-color: var(--seu-green) !important;
+}
+/* 价格文字使用东南辅助色：活力橙，醒目且合规 */
+.text-price {
+  color: var(--seu-orange);
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+/* 页面通用容器 */
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}

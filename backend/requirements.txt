@@ -1,0 +1,19 @@
+# Web 框架与核心
+Flask>=3.0.0
+Werkzeug>=3.0.0
+
+# 数据库与 ORM
+Flask-SQLAlchemy>=3.1.1
+PyMySQL>=1.1.0
+cryptography>=41.0.0  # PyMySQL 在新版本中推荐用于加密身份验证的库
+
+# 认证与跨域
+Flask-JWT-Extended>=4.5.3
+Flask-CORS>=4.0.0
+
+# 实时通讯 (WebSocket)
+Flask-SocketIO>=5.3.6
+eventlet>=0.33.3      # 异步并发库，用于支撑 SocketIO
+
+# 环境配置管理
+python-dotenv>=1.0.0
