@@ -18,6 +18,11 @@ class Product(db.Model):
     seller_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, comment='卖家ID')
     title = db.Column(db.String(100), nullable=False, comment='商品标题')
     description = db.Column(db.Text, comment='商品详细描述')
+    category = db.Column(
+        db.Enum('textbook', 'electronics', 'daily', 'clothing', 'sports', 'other'),
+        default='other',
+        comment='商品分类'
+    )
     price = db.Column(db.Numeric(10, 2), nullable=False, comment='商品价格')
     image_url = db.Column(db.String(255), comment='商品图片本地存储路径')
     status = db.Column(db.Enum('active', 'sold', 'deleted'), default='active', comment='状态')
@@ -36,6 +41,7 @@ class Product(db.Model):
             "seller_name": self.seller.username, # 连表获取卖家名称
             "title": self.title,
             "description": self.description,
+            "category": self.category,
             "price": float(self.price), # Decimal 类型需要转 float 才能 JSON 序列化
             "image_url": self.image_url,
             "status": self.status,

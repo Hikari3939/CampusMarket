@@ -19,6 +19,7 @@ CREATE TABLE products (
     seller_id INT NOT NULL COMMENT '卖家ID',
     title VARCHAR(100) NOT NULL COMMENT '商品标题',
     description TEXT COMMENT '商品详细描述',
+    category ENUM('textbook','electronics','daily','clothing','sports','other') DEFAULT 'other' COMMENT '商品分类',
     price DECIMAL(10, 2) NOT NULL COMMENT '商品价格',
     image_url VARCHAR(255) COMMENT '商品图片本地存储路径',
     status ENUM('active', 'sold', 'deleted') DEFAULT 'active' COMMENT '状态: active在售, sold已售, deleted删除',
@@ -55,3 +56,7 @@ CREATE TABLE messages (
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB COMMENT='私信聊天记录表';
+
+-- 7. 索引：加速商品列表查询与排序
+CREATE INDEX idx_products_status ON products(status);
+CREATE INDEX idx_products_created_at ON products(created_at);

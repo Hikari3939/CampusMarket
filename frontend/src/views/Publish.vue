@@ -3,34 +3,53 @@
   <div class="page-container">
     <el-card class="publish-card">
       <h2 class="page-title">发布闲置</h2>
-      
-      <el-form 
-        ref="formRef" 
-        :model="form" 
-        :rules="rules" 
+
+      <!-- 上传进度条 -->
+      <el-progress
+        v-if="uploadPercent > 0 && uploadPercent < 100"
+        :percentage="uploadPercent"
+        :stroke-width="6"
+        color="var(--seu-green)"
+        style="margin-bottom: 20px;"
+      />
+
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
         label-width="100px"
         label-position="top">
-        
+
         <el-form-item label="商品标题" prop="title">
           <el-input v-model="form.title" placeholder="请输入商品名称，如：九成新高数教材" maxlength="50" show-word-limit />
         </el-form-item>
 
+        <el-form-item label="商品分类" prop="category">
+          <el-select v-model="form.category" placeholder="请选择商品分类" style="width: 100%">
+            <el-option
+              v-for="cat in categories"
+              :key="cat.value"
+              :label="cat.label"
+              :value="cat.value"
+            />
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="商品价格 (元)" prop="price">
-          <el-input-number v-model="form.price" :min="0.01" :precision="2" :step="1" placeholder="0.00" />
+          <el-input-number v-model="form.price" :min="0.01" :precision="2" :step="1" placeholder="0.00" style="width: 100%" />
         </el-form-item>
 
         <el-form-item label="商品描述" prop="description">
-          <el-input 
-            v-model="form.description" 
-            type="textarea" 
-            :rows="4" 
-            placeholder="详细描述一下你的商品（新旧程度、购买时间等）" 
-            maxlength="500" 
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="4"
+            placeholder="详细描述一下你的商品（新旧程度、购买时间等）"
+            maxlength="500"
             show-word-limit />
         </el-form-item>
 
         <el-form-item label="商品图片" prop="image">
-          <!-- 注意：auto-upload="false" 阻止自动上传，改为随表单一起提交 -->
           <el-upload
             class="image-uploader"
             action="#"
@@ -66,10 +85,22 @@ import { createProduct } from '../api/product'
 const router = useRouter()
 const formRef = ref(null)
 const submitting = ref(false)
+const uploadPercent = ref(0)
+
+// 分类选项
+const categories = [
+  { label: '教材教辅', value: 'textbook' },
+  { label: '电子数码', value: 'electronics' },
+  { label: '生活日用', value: 'daily' },
+  { label: '服饰鞋包', value: 'clothing' },
+  { label: '运动户外', value: 'sports' },
+  { label: '其他', value: 'other' },
+]
 
 // 表单数据
 const form = reactive({
   title: '',
+  category: 'other',
   price: undefined,
   description: '',
 })
@@ -81,7 +112,8 @@ const previewUrl = ref('')
 // 表单校验规则
 const rules = {
   title: [{ required: true, message: '请输入商品标题', trigger: 'blur' }],
-  price: [{ required: true, message: '请设置商品价格', trigger: 'blur' }]
+  price: [{ required: true, message: '请设置商品价格', trigger: 'blur' }],
+  category: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
 }
 
 // 处理图片选择与本地预览
@@ -92,7 +124,7 @@ const handleImageChange = (uploadFile) => {
     return false
   }
   selectedFile.value = file
-  previewUrl.value = URL.createObjectURL(file) // 生成本地预览图
+  previewUrl.value = URL.createObjectURL(file)
 }
 
 // 提交表单
@@ -106,22 +138,31 @@ const submitForm = async () => {
       }
 
       submitting.value = true
-      
-      // 【重点】：构建 FormData
+      uploadPercent.value = 0
+
+      // 构建 FormData
       const formData = new FormData()
       formData.append('title', form.title)
       formData.append('price', form.price)
+      formData.append('category', form.category)
       formData.append('description', form.description)
       formData.append('image', selectedFile.value)
 
       try {
-        await createProduct(formData)
+        await createProduct(formData, {
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              uploadPercent.value = Math.round((progressEvent.loaded / progressEvent.total) * 100)
+            }
+          }
+        })
         ElMessage.success('发布成功！')
-        router.push('/') // 返回首页
+        router.push('/')
       } catch (error) {
         // Axios 拦截器已处理报错
       } finally {
         submitting.value = false
+        uploadPercent.value = 0
       }
     }
   })

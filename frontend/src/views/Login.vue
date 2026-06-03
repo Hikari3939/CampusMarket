@@ -31,15 +31,16 @@
           </el-tab-pane>
 
           <el-tab-pane label="新用户注册" name="register">
-            <el-form :model="registerForm">
-              <el-form-item>
-                <el-input v-model="registerForm.username" placeholder="设置用户名 (如: SEU小明)" size="large" />
+            <el-form :model="registerForm" :rules="registerRules" ref="registerFormRef">
+              <el-form-item prop="username">
+                <el-input v-model="registerForm.username" placeholder="设置用户名 (2-50个字符)" size="large" maxlength="50" show-word-limit />
               </el-form-item>
-              <el-form-item>
+              <el-form-item prop="email">
                 <el-input v-model="registerForm.email" placeholder="邮箱 (推荐使用@seu.edu.cn)" size="large" />
               </el-form-item>
-              <el-form-item>
-                <el-input v-model="registerForm.password" type="password" placeholder="设置密码" size="large" show-password />
+              <el-form-item prop="password">
+                <el-input v-model="registerForm.password" type="password" placeholder="至少6位，需包含字母和数字" size="large" show-password />
+                <div class="password-hint">密码需至少6位，且同时包含字母和数字</div>
               </el-form-item>
               <el-button class="submit-btn register-btn" size="large" @click="handleRegister" :loading="loading">
                 注 册
@@ -53,7 +54,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../stores/user';
 import { loginAPI, registerAPI } from '../api/auth';
@@ -64,9 +65,39 @@ const userStore = useUserStore();
 
 const activeTab = ref('login');
 const loading = ref(false);
+const registerFormRef = ref(null);
 
 const loginForm = ref({ email: '', password: '' });
-const registerForm = ref({ username: '', email: '', password: '' });
+const registerForm = reactive({ username: '', email: '', password: '' });
+
+// 注册表单校验规则（前端初步校验）
+const validatePassword = (_rule, value, callback) => {
+  if (!value) {
+    callback(new Error('请输入密码'));
+  } else if (value.length < 6) {
+    callback(new Error('密码长度不能少于6位'));
+  } else if (!/[A-Za-z]/.test(value)) {
+    callback(new Error('密码必须包含至少一个字母'));
+  } else if (!/\d/.test(value)) {
+    callback(new Error('密码必须包含至少一个数字'));
+  } else {
+    callback();
+  }
+};
+
+const registerRules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 2, max: 50, message: '用户名长度应在2-50个字符之间', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, validator: validatePassword, trigger: 'blur' }
+  ]
+};
 
 const handleLogin = async () => {
   if (!loginForm.value.email || !loginForm.value.password) {
@@ -87,19 +118,21 @@ const handleLogin = async () => {
 };
 
 const handleRegister = async () => {
-  if (!registerForm.value.username || !registerForm.value.email || !registerForm.value.password) {
-    return ElMessage.warning('请填写完整信息');
-  }
-  loading.value = true;
-  try {
-    await registerAPI(registerForm.value);
-    ElMessage.success('注册成功，请登录');
-    activeTab.value = 'login';
-    loginForm.value.email = registerForm.value.email;
-  } catch (error) {
-  } finally {
-    loading.value = false;
-  }
+  if (!registerFormRef.value) return;
+  await registerFormRef.value.validate(async (valid) => {
+    if (!valid) return;
+    loading.value = true;
+    try {
+      await registerAPI(registerForm);
+      ElMessage.success('注册成功，请登录');
+      activeTab.value = 'login';
+      loginForm.value.email = registerForm.email;
+    } catch (error) {
+      // 错误在拦截器中已经处理提示
+    } finally {
+      loading.value = false;
+    }
+  });
 };
 </script>
 
@@ -181,6 +214,14 @@ const handleRegister = async () => {
   background-color: #df9b00;
   border-color: #df9b00;
   color: white;
+}
+
+/* 密码规则提示 */
+.password-hint {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 /* 修改 Element Plus 的 Tab 样式实现极简风格 */

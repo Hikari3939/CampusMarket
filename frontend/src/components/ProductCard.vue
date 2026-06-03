@@ -23,7 +23,7 @@
       
       <div class="bottom-bar">
         <span class="text-price">¥ {{ product.price }}</span>
-        <span class="seller-name">{{ product.seller_name }}</span>
+        <span class="seller-name" @click.stop="goToSeller">{{ product.seller_name }}</span>
       </div>
 
       <!-- 删除按钮，仅当当前登录用户是卖家时显示 -->
@@ -36,8 +36,11 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Picture } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
+
+const router = useRouter()
 
 const props = defineProps({
   product: { type: Object, required: true }
@@ -50,6 +53,10 @@ const userStore = useUserStore()
 const isSeller = computed(() => {
   return userStore.userInfo && userStore.userInfo.id === props.product.seller_id
 })
+
+const goToSeller = () => {
+  router.push(`/user/${props.product.seller_id}`)
+}
 
 const handleDelete = () => {
   emit('delete', props.product.id)

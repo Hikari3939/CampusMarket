@@ -73,5 +73,41 @@ def create_order():
     except Exception as e:
         # 严格遵守规范：异常时必须 rollback，保证数据原子性
         db.session.rollback()
-        # 实际开发中应该将 e 记录到日志
-        return jsonify({"msg": f"服务器内部错误，交易失败: {str(e)}"}), 500
+        return jsonify({"msg": "服务器内部错误，交易失败"}), 500
+
+
+@order_bp.route('/<int:order_id>/cancel', methods=['PUT'])
+@jwt_required()
+def cancel_order(order_id):
+    """
+    取消订单（仅买家可操作，恢复商品为上架状态）
+    路径: PUT /api/orders/<id>/cancel
+    """
+    current_user_id = int(get_jwt_identity())
+    order = Order.query.get(order_id)
+
+    if not order:
+        return jsonify({"msg": "订单不存在"}), 404
+
+    if order.buyer_id != current_user_id:
+        return jsonify({"msg": "无权操作他人的订单"}), 403
+
+    if order.status == 'cancelled':
+        return jsonify({"msg": "订单已经被取消"}), 400
+
+    if order.status != 'completed':
+        return jsonify({"msg": "该订单状态不允许取消"}), 400
+
+    # 检查关联商品，仅当商品仍为 sold 状态时才恢复
+    product = Product.query.get(order.product_id)
+    if not product or product.status != 'sold':
+        return jsonify({"msg": "商品状态异常，无法取消"}), 400
+
+    try:
+        order.status = 'cancelled'
+        product.status = 'active'  # 恢复商品为在售
+        db.session.commit()
+        return jsonify({"msg": "订单已取消，商品已重新上架"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"msg": "取消失败"}), 500

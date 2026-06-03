@@ -8,3 +8,11 @@ export const createOrder = (data) => {
     data // { product_id: xxx }
   })
 }
+
+// 取消订单
+export const cancelOrder = (id) => {
+  return request({
+    url: `/orders/${id}/cancel`,
+    method: 'PUT'
+  })
+}

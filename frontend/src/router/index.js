@@ -31,6 +31,12 @@ const routes = [
     path: '/chat',
     component: () => import('../views/Chat.vue'),
     meta: { requiresAuth: true } // 需要登录
+  },
+  {
+    path: '/user/:id',
+    name: 'UserProfile',
+    component: () => import('../views/UserProfile.vue'),
+    // 公开页面，无需登录
   }
 ];
 

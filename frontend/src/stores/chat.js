@@ -20,9 +20,11 @@ export const useChatStore = defineStore('chat', () => {
     if (!userStore.token) return
     if (socket.value && socket.value.connected) return
 
-    // 后端地址
-    const currentHost = window.location.hostname
-    socket.value = io(import.meta.env.VITE_API_BASE_URL || `http://${currentHost}:5000`, {
+    // WebSocket 地址 — 优先使用环境变量
+    const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL
+      || import.meta.env.VITE_API_BASE_URL
+      || `http://${window.location.hostname}:5000`
+    socket.value = io(WS_BASE_URL, {
       auth: { token: userStore.token },
       transports: ['websocket', 'polling']
     })

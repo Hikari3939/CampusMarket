@@ -20,8 +20,8 @@ def create_app():
     # 初始化扩展
     db.init_app(app)
     jwt.init_app(app)
-    # 允许所有跨域请求
-    cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
+    # CORS 白名单 — 仅允许配置中指定的前端地址
+    cors.init_app(app, resources={r"/api/*": {"origins": app.config['CORS_ORIGINS']}})
     socketio.init_app(app)
     
     # 注册蓝图 (路由前缀为 /api/auth)
