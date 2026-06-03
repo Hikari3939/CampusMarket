@@ -13,7 +13,8 @@ Flask-CORS>=4.0.0
 
 # 实时通讯 (WebSocket)
 Flask-SocketIO>=5.3.6
-eventlet>=0.33.3      # 异步并发库，用于支撑 SocketIO
+gevent>=24.0.0          # 异步并发库，用于支撑 SocketIO
+gevent-websocket>=0.10.0
 
 # 环境配置管理
 python-dotenv>=1.0.0

@@ -14,7 +14,7 @@ def get_my_published():
     获取我发布的商品历史
     路径: GET /api/users/me/published
     """
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # 按照创建时间倒序排列
     products = Product.query.filter_by(seller_id=current_user_id).order_by(Product.created_at.desc()).all()
@@ -44,7 +44,7 @@ def get_my_bought():
     获取我购买的订单历史
     路径: GET /api/users/me/bought
     """
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     
     # 查询买家为当前用户的订单，并关联查询商品信息
     orders = Order.query.filter_by(buyer_id=current_user_id).order_by(Order.created_at.desc()).all()

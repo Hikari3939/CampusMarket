@@ -16,7 +16,7 @@ def create_order():
     创建订单（购买商品）
     路径: POST /api/orders
     """
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
 
     # 1. 参数校验

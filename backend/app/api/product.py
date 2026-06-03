@@ -21,7 +21,7 @@ def create_product():
     发布商品接口 (包含图片上传)
     注意：前端须使用 FormData 发送请求，包含 title, description, price, image(文件)
     """
-    current_user_id = get_jwt_identity()
+    current_user_id = int(get_jwt_identity())
 
     # 1. 获取表单文本数据
     title = request.form.get('title')
@@ -121,14 +121,14 @@ def delete_product(product_id):
     删除商品接口
     规范要求：必须校验越权，仅能删除自己的商品。采取软删除（状态机更改）
     """
-    current_user_id = get_jwt_identity()
-    
+    current_user_id = int(get_jwt_identity())
+
     product = Product.query.get(product_id)
     if not product:
         return jsonify({"msg": "商品不存在"}), 404
-    
+
     # 【核心安全校验】：防止越权删除他人商品
-    if str(product.seller_id) != str(current_user_id):
+    if product.seller_id != current_user_id:
         return jsonify({"msg": "无权操作他人的商品"}), 403
 
     try:

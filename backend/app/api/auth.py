@@ -49,7 +49,7 @@ def login():
         return jsonify({"msg": "邮箱或密码错误"}), 401
 
     # 3. 签发 JWT Token (把用户 ID 作为身份载荷 payload)
-    access_token = create_access_token(identity=str(user.id))
+    access_token = create_access_token(identity=user.id)
     
     return jsonify({
         "msg": "登录成功",
