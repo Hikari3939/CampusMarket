@@ -2,13 +2,16 @@
 <template>
   <div class="page-container">
     <div class="profile-header">
-      <el-avatar :size="64" class="user-avatar">{{ userStore.userInfo?.username?.charAt(0) }}</el-avatar>
+      <el-avatar :size="64" class="user-avatar">
+        <img v-if="userStore.userInfo?.avatar_url" :src="userStore.userInfo.avatar_url" style="width:100%;height:100%;object-fit:cover" />
+        <span v-else>{{ userStore.userInfo?.username?.charAt(0) }}</span>
+      </el-avatar>
       <div class="user-info">
         <h2>{{ userStore.userInfo?.username }}</h2>
         <p>{{ userStore.userInfo?.email }}</p>
       </div>
       <div class="profile-actions">
-        <el-button text :icon="Edit" @click="showProfileDialog = true">编辑资料</el-button>
+        <el-button text :icon="Edit" @click="openEditDialog">编辑资料</el-button>
       </div>
     </div>
 
@@ -39,6 +42,26 @@
           </div>
         </el-tab-pane>
 
+        <el-tab-pane label="我的收藏" name="favorites">
+          <div v-loading="loadingFavorites" class="list-container">
+            <el-empty v-if="favoritesList.length === 0" description="暂无收藏的商品" />
+
+            <div class="product-grid" v-else>
+              <ProductCard
+                v-for="item in favoritesList"
+                :key="item.id"
+                :product="item"
+                @click="router.push(`/product/${item.id}`)"
+              />
+            </div>
+
+            <!-- 分页 -->
+            <div v-if="favoritesTotal > favoritesList.length" class="load-more-area">
+              <el-button :loading="loadingMoreFavorites" @click="loadMoreFavorites">加载更多</el-button>
+            </div>
+          </div>
+        </el-tab-pane>
+
         <el-tab-pane label="我买到的" name="bought">
           <div v-loading="loadingBought" class="list-container">
             <el-empty v-if="boughtList.length === 0" description="暂无购买记录" />
@@ -59,6 +82,15 @@
                     class="custom-tag">
                     {{ order.order_status === 'completed' ? '交易成功' : '已取消' }}
                   </el-tag>
+                  <el-button
+                    v-if="order.order_status === 'completed' && !order.reviewed"
+                    type="warning"
+                    text
+                    size="small"
+                    style="margin-top: 8px;"
+                    @click.stop="openReviewDialog(order)">
+                    评价
+                  </el-button>
                   <el-button
                     v-if="order.order_status === 'completed'"
                     type="danger"
@@ -82,6 +114,25 @@
       <el-tabs>
         <el-tab-pane label="修改用户名">
           <el-form :model="profileForm" :rules="profileRules" ref="profileFormRef">
+            <el-form-item label="头像">
+              <div class="avatar-upload-row">
+                <el-avatar :size="64" class="avatar-preview">
+                  <img v-if="avatarPreviewUrl || userStore.userInfo?.avatar_url" :src="avatarPreviewUrl || userStore.userInfo.avatar_url" style="width:100%;height:100%;object-fit:cover" />
+                  <span v-else>{{ userStore.userInfo?.username?.charAt(0) }}</span>
+                </el-avatar>
+                <el-upload
+                  class="avatar-uploader"
+                  action="#"
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  :on-change="handleAvatarChange"
+                  accept="image/png, image/jpeg, image/jpg, image/gif"
+                >
+                  <el-button size="small" type="primary" plain>更换头像</el-button>
+                </el-upload>
+              </div>
+              <div class="upload-tip">支持 png/jpg/jpeg/gif 格式</div>
+            </el-form-item>
             <el-form-item label="用户名" prop="username">
               <el-input v-model="profileForm.username" maxlength="50" show-word-limit />
             </el-form-item>
@@ -105,6 +156,22 @@
         </el-tab-pane>
       </el-tabs>
     </el-dialog>
+
+    <!-- 评价对话框 -->
+    <el-dialog v-model="showReviewDialog" title="评价交易" width="420px" :close-on-click-modal="false">
+      <el-form :model="reviewForm" ref="reviewFormRef" label-position="top">
+        <el-form-item label="评分" required>
+          <StarRating v-model="reviewForm.rating" />
+        </el-form-item>
+        <el-form-item label="评价内容">
+          <el-input v-model="reviewForm.comment" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="说说这次交易的体验吧..." />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showReviewDialog = false">取消</el-button>
+        <el-button type="primary" :loading="submittingReview" @click="submitReview">提交评价</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -116,6 +183,10 @@ import { getMyPublished, getMyBought, updateProfile, updatePassword } from '../a
 import { cancelOrder } from '../api/order'
 import { Edit } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getFavorites } from '../api/favorite'
+import { createReview, checkReviewed } from '../api/review'
+import ProductCard from '../components/ProductCard.vue'
+import StarRating from '../components/StarRating.vue'
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -124,8 +195,13 @@ const router = useRouter()
 const activeTab = ref('published')
 const publishedList = ref([])
 const boughtList = ref([])
+const favoritesList = ref([])
+const favoritesPage = ref(1)
+const favoritesTotal = ref(0)
 const loadingPublished = ref(false)
 const loadingBought = ref(false)
+const loadingFavorites = ref(false)
+const loadingMoreFavorites = ref(false)
 
 const statusMap = {
   'active': '在售中',
@@ -139,6 +215,9 @@ const profileFormRef = ref(null)
 const passwordFormRef = ref(null)
 const savingProfile = ref(false)
 const savingPassword = ref(false)
+
+const avatarSelectedFile = ref(null)
+const avatarPreviewUrl = ref('')
 
 const profileForm = reactive({ username: '' })
 const profileRules = {
@@ -179,7 +258,22 @@ const passwordRules = {
 }
 
 // Watch dialog open to pre-fill
-const openProfileDialog = () => { showProfileDialog.value = true } // triggered by button
+const openEditDialog = () => {
+  profileForm.username = userStore.userInfo?.username || ''
+  avatarSelectedFile.value = null
+  avatarPreviewUrl.value = ''
+  showProfileDialog.value = true
+}
+
+const handleAvatarChange = (uploadFile) => {
+  const file = uploadFile.raw
+  if (file.size / 1024 / 1024 > 5) {
+    ElMessage.error('图片大小不能超过 5MB!')
+    return false
+  }
+  avatarSelectedFile.value = file
+  avatarPreviewUrl.value = URL.createObjectURL(file)
+}
 
 const submitProfile = async () => {
   if (!profileFormRef.value) return
@@ -187,8 +281,20 @@ const submitProfile = async () => {
     if (!valid) return
     savingProfile.value = true
     try {
-      const res = await updateProfile({ username: profileForm.username })
-      userStore.setUserInfo({ ...userStore.userInfo, username: res.data.username })
+      let res
+      if (avatarSelectedFile.value) {
+        // 有头像文件时使用 FormData
+        const formData = new FormData()
+        formData.append('username', profileForm.username)
+        formData.append('avatar', avatarSelectedFile.value)
+        res = await updateProfile(formData)
+      } else {
+        res = await updateProfile({ username: profileForm.username })
+      }
+      userStore.setUserInfo({
+        username: res.data.username,
+        avatar_url: res.data.avatar_url
+      })
       ElMessage.success('资料更新成功')
       showProfileDialog.value = false
     } catch (e) {} finally {
@@ -214,6 +320,41 @@ const submitPassword = async () => {
       savingPassword.value = false
     }
   })
+}
+
+// --- Reviews ---
+const showReviewDialog = ref(false)
+const reviewFormRef = ref(null)
+const submittingReview = ref(false)
+const reviewForm = reactive({ rating: 0, comment: '' })
+const currentReviewOrder = ref(null)
+
+const openReviewDialog = (order) => {
+  currentReviewOrder.value = order
+  reviewForm.rating = 0
+  reviewForm.comment = ''
+  showReviewDialog.value = true
+}
+
+const submitReview = async () => {
+  if (reviewForm.rating < 1 || reviewForm.rating > 5) {
+    ElMessage.warning('请选择评分')
+    return
+  }
+  submittingReview.value = true
+  try {
+    await createReview({
+      order_id: currentReviewOrder.value.order_id,
+      rating: reviewForm.rating,
+      comment: reviewForm.comment
+    })
+    ElMessage.success('评价提交成功')
+    showReviewDialog.value = false
+    // 标记已评价
+    currentReviewOrder.value.reviewed = true
+  } catch (e) {} finally {
+    submittingReview.value = false
+  }
 }
 
 // --- Order cancel ---
@@ -248,14 +389,54 @@ const fetchBought = async () => {
   try {
     const res = await getMyBought()
     boughtList.value = res.data
+    // 检查每个订单的评价状态
+    for (const order of boughtList.value) {
+      if (order.order_status === 'completed') {
+        try {
+          const checkRes = await checkReviewed(order.order_id)
+          order.reviewed = checkRes.data.reviewed
+        } catch (e) {
+          order.reviewed = false
+        }
+      }
+    }
   } finally {
     loadingBought.value = false
+  }
+}
+
+// --- Favorites ---
+const fetchFavorites = async () => {
+  if (favoritesList.value.length > 0) return
+  loadingFavorites.value = true
+  favoritesPage.value = 1
+  try {
+    const res = await getFavorites({ page: 1, per_page: 12 })
+    favoritesList.value = res.data
+    favoritesTotal.value = res.pagination.total
+  } finally {
+    loadingFavorites.value = false
+  }
+}
+
+const loadMoreFavorites = async () => {
+  loadingMoreFavorites.value = true
+  favoritesPage.value++
+  try {
+    const res = await getFavorites({ page: favoritesPage.value, per_page: 12 })
+    favoritesList.value.push(...res.data)
+    favoritesTotal.value = res.pagination.total
+  } catch (e) {
+    favoritesPage.value--
+  } finally {
+    loadingMoreFavorites.value = false
   }
 }
 
 const handleTabChange = (tabName) => {
   if (tabName === 'published') fetchPublished()
   if (tabName === 'bought') fetchBought()
+  if (tabName === 'favorites') fetchFavorites()
 }
 
 onMounted(() => {
@@ -378,5 +559,36 @@ onMounted(() => {
 .custom-tag {
   border: none;
   border-radius: 4px;
+}
+
+/* 收藏商品网格 */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+.load-more-area {
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+  width: 100%;
+}
+
+/* 头像上传 */
+.avatar-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.avatar-preview {
+  background-color: var(--seu-green);
+  font-size: 24px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.upload-tip {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 8px;
 }
 </style>

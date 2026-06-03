@@ -49,7 +49,7 @@ def get_chat_history(contact_id):
     return jsonify({
         "msg": "获取历史记录成功",
         "data": {
-            "contact": {"id": contact.id, "username": contact.username},
+            "contact": {"id": contact.id, "username": contact.username, "avatar_url": contact.avatar_url},
             "messages": data
         }
     }), 200
@@ -89,6 +89,7 @@ def get_contacts():
         contacts_data.append({
             "id": user.id,
             "username": user.username,
+            "avatar_url": user.avatar_url,
             "last_message": last_msg.content if last_msg else "",
             "last_time": last_msg.created_at.strftime("%Y-%m-%d %H:%M:%S") if last_msg else "",
             "unread_count": unread_count

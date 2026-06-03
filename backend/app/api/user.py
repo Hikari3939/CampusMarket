@@ -1,8 +1,10 @@
 # app/api/user.py
-from flask import Blueprint, request, jsonify
+import os
+import uuid
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from werkzeug.security import check_password_hash, generate_password_hash
-from app.models import Product, Order, User
+from app.models import Product, Order, User, Review
 from app.extensions import db
 from app.api.auth import validate_password_strength
 
@@ -80,13 +82,21 @@ def get_my_bought():
 @jwt_required()
 def update_profile():
     """
-    修改个人资料（当前支持用户名）
+    修改个人资料（支持用户名和头像）
     路径: PUT /api/users/me
-    Body: { "username": "新用户名" }
+    支持 JSON: { "username": "新用户名" }
+    支持 FormData: username + avatar(文件)
     """
     current_user_id = int(get_jwt_identity())
-    data = request.get_json()
-    username = data.get('username', '').strip()
+
+    # 判断请求类型：JSON 还是 FormData
+    if request.is_json:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        avatar_file = None
+    else:
+        username = request.form.get('username', '').strip()
+        avatar_file = request.files.get('avatar')
 
     if not username:
         return jsonify({"msg": "用户名不能为空"}), 400
@@ -101,11 +111,40 @@ def update_profile():
     user = User.query.get(current_user_id)
     user.username = username
 
+    # 处理头像上传
+    if avatar_file and avatar_file.filename != '':
+        allowed_exts = current_app.config.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
+        ext = avatar_file.filename.rsplit('.', 1)[-1].lower() if '.' in avatar_file.filename else ''
+        if ext not in allowed_exts:
+            return jsonify({"msg": "不支持的图片格式，仅支持 png, jpg, jpeg, gif"}), 400
+
+        # 删除旧头像文件
+        if user.avatar_url:
+            old_filename = user.avatar_url.rsplit('/', 1)[-1]
+            old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars', old_filename)
+            try:
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            except OSError:
+                pass
+
+        # 保存新头像
+        avatars_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars')
+        os.makedirs(avatars_dir, exist_ok=True)
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        avatar_file.save(os.path.join(avatars_dir, filename))
+        user.avatar_url = f"{request.host_url}static/uploads/avatars/{filename}"
+
     try:
         db.session.commit()
         return jsonify({
             "msg": "资料更新成功",
-            "data": {"id": user.id, "username": user.username, "email": user.email}
+            "data": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "avatar_url": user.avatar_url
+            }
         }), 200
     except Exception as e:
         db.session.rollback()
@@ -164,14 +203,67 @@ def get_user_profile(user_id):
         seller_id=user_id, status='active'
     ).order_by(Product.created_at.desc()).all()
 
+    # 获取评价统计
+    avg_rating_result = db.session.query(db.func.avg(Review.rating)).filter(
+        Review.reviewee_id == user_id
+    ).scalar()
+    avg_rating = round(float(avg_rating_result), 1) if avg_rating_result else 0
+    review_count = Review.query.filter_by(reviewee_id=user_id).count()
+
     return jsonify({
         "msg": "获取成功",
         "data": {
             "user": {
                 "id": user.id,
                 "username": user.username,
-                "created_at": user.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                "avatar_url": user.avatar_url,
+                "created_at": user.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                "avg_rating": avg_rating,
+                "review_count": review_count
             },
             "products": [p.to_dict() for p in products]
+        }
+    }), 200
+
+
+@user_bp.route('/<int:user_id>/reviews', methods=['GET'])
+def get_user_reviews(user_id):
+    """
+    获取用户收到的评价列表
+    路径: GET /api/users/<id>/reviews
+    公开接口，无需登录
+    """
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"msg": "用户不存在"}), 404
+
+    reviews = Review.query.filter_by(reviewee_id=user_id).order_by(Review.created_at.desc()).all()
+
+    data = []
+    for r in reviews:
+        data.append({
+            "id": r.id,
+            "order_id": r.order_id,
+            "reviewer": {
+                "id": r.reviewer.id,
+                "username": r.reviewer.username,
+                "avatar_url": r.reviewer.avatar_url
+            },
+            "rating": r.rating,
+            "comment": r.comment,
+            "created_at": r.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        })
+
+    avg_rating_result = db.session.query(db.func.avg(Review.rating)).filter(
+        Review.reviewee_id == user_id
+    ).scalar()
+    avg_rating = round(float(avg_rating_result), 1) if avg_rating_result else 0
+
+    return jsonify({
+        "msg": "获取成功",
+        "data": {
+            "reviews": data,
+            "avg_rating": avg_rating,
+            "review_count": len(data)
         }
     }), 200

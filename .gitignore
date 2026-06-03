@@ -56,6 +56,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# 忽略用户上传的本地测试图片，但保留目录结构
+# 忽略用户上传的图片，但保留目录结构（.gitkeep）
 backend/static/uploads/*
 !backend/static/uploads/.gitkeep
+!backend/static/uploads/avatars/
+backend/static/uploads/avatars/*
+!backend/static/uploads/avatars/.gitkeep

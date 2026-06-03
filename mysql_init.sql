@@ -10,6 +10,7 @@ CREATE TABLE users (
     username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
     email VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱(可作为登录账号)',
     password_hash VARCHAR(255) NOT NULL COMMENT '加密后的密码',
+    avatar_url VARCHAR(255) DEFAULT NULL COMMENT '用户头像URL',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 ) ENGINE=InnoDB COMMENT='用户表';
 
@@ -60,3 +61,49 @@ CREATE TABLE messages (
 -- 7. 索引：加速商品列表查询与排序
 CREATE INDEX idx_products_status ON products(status);
 CREATE INDEX idx_products_created_at ON products(created_at);
+CREATE INDEX idx_products_price ON products(price);
+
+-- 8. 创建商品多图表 (product_images)
+CREATE TABLE product_images (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '图片主键ID',
+    product_id INT NOT NULL COMMENT '商品ID',
+    image_url VARCHAR(255) NOT NULL COMMENT '图片路径',
+    sort_order TINYINT UNSIGNED DEFAULT 0 COMMENT '排序序号(0-4)',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    INDEX idx_product_images_product_id (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品多图表';
+
+-- 9. 创建收藏表 (favorites)
+CREATE TABLE favorites (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '收藏主键ID',
+    user_id INT NOT NULL COMMENT '用户ID',
+    product_id INT NOT NULL COMMENT '商品ID',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_product (user_id, product_id),
+    INDEX idx_favorites_user_id (user_id),
+    INDEX idx_favorites_product_id (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户收藏/心愿单表';
+
+-- 10. 创建评价表 (reviews)
+CREATE TABLE reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '评价主键ID',
+    order_id INT NOT NULL COMMENT '关联订单ID',
+    reviewer_id INT NOT NULL COMMENT '评价者ID',
+    reviewee_id INT NOT NULL COMMENT '被评价者ID',
+    rating TINYINT UNSIGNED NOT NULL COMMENT '评分(1-5星)',
+    comment TEXT COMMENT '评价内容',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '评价时间',
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewee_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_order_reviewer (order_id, reviewer_id),
+    INDEX idx_reviews_reviewee_id (reviewee_id),
+    INDEX idx_reviews_reviewer_id (reviewer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='交易互评表';
+
+-- 11. 追加索引：加速消息查询
+ALTER TABLE messages ADD INDEX idx_messages_sender_receiver (sender_id, receiver_id);
+ALTER TABLE messages ADD INDEX idx_messages_created_at (created_at);

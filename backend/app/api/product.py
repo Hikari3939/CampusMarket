@@ -4,7 +4,7 @@ import uuid
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
-from app.models import Product
+from app.models import Product, ProductImage
 
 # 创建商品蓝图
 product_bp = Blueprint('product', __name__)
@@ -23,6 +23,52 @@ def allowed_file(filename):
     """检查文件后缀是否合法"""
     ALLOWED_EXTENSIONS = current_app.config.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def save_image_file(file):
+    """保存单个图片文件，返回生成的 URL"""
+    ext = file.filename.rsplit('.', 1)[1].lower()
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+    file.save(upload_path)
+    return f"{request.host_url}static/uploads/{filename}"
+
+
+def collect_image_files(request):
+    """从请求中收集所有图片文件（支持多图 image_0..image_4 和单图 image 兼容）"""
+    files = []
+    # 优先按 image_0..image_4 收集
+    for i in range(5):
+        key = f'image_{i}'
+        if key in request.files:
+            f = request.files[key]
+            if f and f.filename != '' and allowed_file(f.filename):
+                files.append(f)
+    # 兼容旧的单图字段
+    if not files and 'image' in request.files:
+        f = request.files['image']
+        if f and f.filename != '' and allowed_file(f.filename):
+            files.append(f)
+    # 也支持 images 数组
+    if not files and 'images' in request.files:
+        file_list = request.files.getlist('images')
+        for f in file_list[:5]:
+            if f and f.filename != '' and allowed_file(f.filename):
+                files.append(f)
+    return files
+
+
+def remove_old_image_file(image_url):
+    """删除旧图片文件"""
+    if not image_url:
+        return
+    old_filename = image_url.rsplit('/', 1)[-1]
+    old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], old_filename)
+    try:
+        if os.path.exists(old_path):
+            os.remove(old_path)
+    except OSError:
+        pass
 
 
 @product_bp.route('', methods=['POST'])
@@ -55,36 +101,36 @@ def create_product():
         return jsonify({"msg": "价格格式不正确"}), 400
 
     # 3. 处理图片上传
-    image_url = None
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and file.filename != '':
-            if not allowed_file(file.filename):
-                return jsonify({"msg": "不支持的图片格式，仅支持 png, jpg, jpeg, gif"}), 400
-
-            # 安全处理文件名并生成唯一UUID前缀，防止文件名冲突或路径穿越攻击
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"{uuid.uuid4().hex}.{ext}"
-
-            # 保存到本地配置的 static/uploads 目录
-            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(upload_path)
-
-            # 生成前端可访问的 URL
-            image_url = f"{request.host_url}static/uploads/{filename}"
+    image_files = collect_image_files(request)
 
     # 4. 开启数据库事务，插入商品记录
     try:
+        # 向后兼容：保留第一张图片 URL 到 products.image_url
+        primary_url = None
         new_product = Product(
             seller_id=current_user_id,
             title=title,
             description=description,
             category=category,
             price=price_val,
-            image_url=image_url,
+            image_url=None,
             status='active'
         )
         db.session.add(new_product)
+        db.session.flush()  # 获取 new_product.id
+
+        # 保存多图
+        for idx, img_file in enumerate(image_files):
+            img_url = save_image_file(img_file)
+            if idx == 0:
+                primary_url = img_url
+                new_product.image_url = primary_url
+            db.session.add(ProductImage(
+                product_id=new_product.id,
+                image_url=img_url,
+                sort_order=idx
+            ))
+
         db.session.commit()
         return jsonify({
             "msg": "商品发布成功",
@@ -111,6 +157,8 @@ def get_products():
     category = request.args.get('category', '').strip()
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 12, type=int)
+    min_price = request.args.get('min_price', '').strip()
+    max_price = request.args.get('max_price', '').strip()
 
     # 参数范围限制
     if page < 1:
@@ -130,6 +178,18 @@ def get_products():
     # 如果指定了有效分类，添加分类过滤
     if category and category in VALID_CATEGORIES:
         query = query.filter(Product.category == category)
+
+    # 价格区间过滤
+    if min_price:
+        try:
+            query = query.filter(Product.price >= float(min_price))
+        except ValueError:
+            pass
+    if max_price:
+        try:
+            query = query.filter(Product.price <= float(max_price))
+        except ValueError:
+            pass
 
     # 按最新发布时间倒序排列 + 分页
     paginated = query.order_by(Product.created_at.desc()).paginate(
@@ -218,28 +278,27 @@ def update_product(product_id):
             return jsonify({"msg": "价格格式不正确"}), 400
 
     # 处理图片更换
-    if 'image' in request.files:
-        file = request.files['image']
-        if file and file.filename != '':
-            if not allowed_file(file.filename):
-                return jsonify({"msg": "不支持的图片格式，仅支持 png, jpg, jpeg, gif"}), 400
+    image_files = collect_image_files(request)
+    if image_files:
+        # 删除所有旧图片（数据库记录 + 文件）
+        for old_img in product.images:
+            remove_old_image_file(old_img.image_url)
+        # 清除旧的多图记录
+        ProductImage.query.filter_by(product_id=product.id).delete()
+        # 删除旧的单图文件
+        if product.image_url and product.image_url not in [img.image_url for img in product.images]:
+            remove_old_image_file(product.image_url)
 
-            # 删除旧图片文件
-            if product.image_url:
-                old_filename = product.image_url.rsplit('/', 1)[-1]
-                old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], old_filename)
-                try:
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
-                except OSError:
-                    pass  # 旧文件删除失败不阻塞更新
-
-            # 保存新图片
-            ext = file.filename.rsplit('.', 1)[1].lower()
-            filename = f"{uuid.uuid4().hex}.{ext}"
-            upload_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(upload_path)
-            product.image_url = f"{request.host_url}static/uploads/{filename}"
+        # 保存新图片
+        for idx, img_file in enumerate(image_files):
+            img_url = save_image_file(img_file)
+            if idx == 0:
+                product.image_url = img_url
+            db.session.add(ProductImage(
+                product_id=product.id,
+                image_url=img_url,
+                sort_order=idx
+            ))
 
     try:
         db.session.commit()

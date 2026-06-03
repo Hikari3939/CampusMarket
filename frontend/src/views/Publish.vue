@@ -49,19 +49,25 @@
             show-word-limit />
         </el-form-item>
 
-        <el-form-item label="商品图片" prop="image">
-          <el-upload
-            class="image-uploader"
-            action="#"
-            :auto-upload="false"
-            :show-file-list="false"
-            :on-change="handleImageChange"
-            accept="image/png, image/jpeg, image/jpg, image/gif"
-          >
-            <img v-if="previewUrl" :src="previewUrl" class="preview-img" />
-            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
-          </el-upload>
-          <div class="upload-tip">建议上传 1:1 比例的高清图片，大小不超过 5MB。</div>
+        <el-form-item label="商品图片 (最多5张)" prop="image">
+          <div class="publish-images-grid">
+            <div v-for="(preview, idx) in previewUrls" :key="'pub-preview-'+idx" class="publish-preview-item">
+              <img :src="preview" class="publish-preview-img" />
+              <el-icon class="publish-preview-remove" @click="removePublishImage(idx)"><CircleClose /></el-icon>
+            </div>
+            <el-upload
+              v-if="selectedFiles.length < 5"
+              class="image-uploader"
+              action="#"
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleImageChange"
+              accept="image/png, image/jpeg, image/jpg, image/gif"
+            >
+              <el-icon class="uploader-icon"><Plus /></el-icon>
+            </el-upload>
+          </div>
+          <div class="upload-tip">建议上传 1:1 比例的高清图片，单张不超过 5MB，最多 5 张。</div>
         </el-form-item>
 
         <el-form-item>
@@ -78,7 +84,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, CircleClose } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { createProduct } from '../api/product'
 
@@ -106,8 +112,8 @@ const form = reactive({
 })
 
 // 图片相关
-const selectedFile = ref(null)
-const previewUrl = ref('')
+const selectedFiles = ref([])
+const previewUrls = ref([])
 
 // 表单校验规则
 const rules = {
@@ -119,12 +125,24 @@ const rules = {
 // 处理图片选择与本地预览
 const handleImageChange = (uploadFile) => {
   const file = uploadFile.raw
+  if (!file) return
   if (file.size / 1024 / 1024 > 5) {
     ElMessage.error('图片大小不能超过 5MB!')
     return false
   }
-  selectedFile.value = file
-  previewUrl.value = URL.createObjectURL(file)
+  if (selectedFiles.value.length >= 5) {
+    ElMessage.warning('最多只能上传 5 张图片')
+    return false
+  }
+  selectedFiles.value.push(file)
+  previewUrls.value.push(URL.createObjectURL(file))
+}
+
+// 移除待上传图片
+const removePublishImage = (idx) => {
+  selectedFiles.value.splice(idx, 1)
+  URL.revokeObjectURL(previewUrls.value[idx])
+  previewUrls.value.splice(idx, 1)
 }
 
 // 提交表单
@@ -132,8 +150,8 @@ const submitForm = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (valid) {
-      if (!selectedFile.value) {
-        ElMessage.warning('请上传一张商品图片')
+      if (selectedFiles.value.length === 0) {
+        ElMessage.warning('请至少上传一张商品图片')
         return
       }
 
@@ -146,7 +164,10 @@ const submitForm = async () => {
       formData.append('price', form.price)
       formData.append('category', form.category)
       formData.append('description', form.description)
-      formData.append('image', selectedFile.value)
+      // 以 image_0, image_1... 格式发送多图
+      selectedFiles.value.forEach((file, idx) => {
+        formData.append(`image_${idx}`, file)
+      })
 
       try {
         await createProduct(formData, {
@@ -180,14 +201,44 @@ const submitForm = async () => {
   margin-bottom: 24px;
   text-align: center;
 }
+/* 多图上传网格 */
+.publish-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+.publish-preview-item {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #d9d9d9;
+}
+.publish-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.publish-preview-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 20px;
+  color: #F56C6C;
+  cursor: pointer;
+  background: white;
+  border-radius: 50%;
+}
 .image-uploader {
   border: 1px dashed #d9d9d9;
   border-radius: 6px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  width: 178px;
-  height: 178px;
+  width: 128px;
+  height: 128px;
   transition: var(--el-transition-duration-fast);
   display: flex;
   justify-content: center;

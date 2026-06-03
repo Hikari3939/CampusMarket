@@ -16,12 +16,15 @@ export const getMyBought = () => {
   })
 }
 
-// 修改个人资料（用户名）
+// 修改个人资料（用户名 + 可选头像文件）
 export const updateProfile = (data) => {
+  // 如果是 FormData（包含头像文件），设置 Content-Type
+  const isFormData = data instanceof FormData
   return request({
     url: '/users/me',
     method: 'PUT',
-    data
+    data,
+    headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {}
   })
 }
 

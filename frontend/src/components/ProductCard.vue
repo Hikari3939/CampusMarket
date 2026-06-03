@@ -2,9 +2,9 @@
   <el-card class="product-card" :body-style="{ padding: '0px' }">
     <!-- 商品主图 -->
     <div class="image-wrapper">
-      <el-image 
-        :src="product.image_url" 
-        fit="cover" 
+      <el-image
+        :src="product.image_url"
+        fit="cover"
         class="product-image"
         lazy>
         <template #error>
@@ -14,6 +14,13 @@
           </div>
         </template>
       </el-image>
+      <!-- 收藏按钮 -->
+      <div class="fav-btn" v-if="userStore.token" @click.stop="handleToggleFavorite">
+        <el-icon :size="20" :color="isFavorited ? '#F56C6C' : '#ccc'">
+          <StarFilled v-if="isFavorited" />
+          <Star v-else />
+        </el-icon>
+      </div>
     </div>
 
     <!-- 商品信息 -->
@@ -23,7 +30,12 @@
       
       <div class="bottom-bar">
         <span class="text-price">¥ {{ product.price }}</span>
-        <span class="seller-name" @click.stop="goToSeller">{{ product.seller_name }}</span>
+        <span class="seller-name" @click.stop="goToSeller">
+          <el-avatar :size="20" class="seller-mini-avatar">
+            <img v-if="product.seller_avatar_url" :src="product.seller_avatar_url" style="width:100%;height:100%;object-fit:cover" />
+          </el-avatar>
+          {{ product.seller_name }}
+        </span>
       </div>
 
       <!-- 删除按钮，仅当当前登录用户是卖家时显示 -->
@@ -35,10 +47,11 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Picture } from '@element-plus/icons-vue'
+import { Picture, Star, StarFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
+import { toggleFavorite, checkFavorites } from '../api/favorite'
 
 const router = useRouter()
 
@@ -48,6 +61,7 @@ const props = defineProps({
 const emit = defineEmits(['delete'])
 
 const userStore = useUserStore()
+const isFavorited = ref(false)
 
 // 判断当前商品是否为当前登录用户发布
 const isSeller = computed(() => {
@@ -61,6 +75,25 @@ const goToSeller = () => {
 const handleDelete = () => {
   emit('delete', props.product.id)
 }
+
+const handleToggleFavorite = async () => {
+  try {
+    const res = await toggleFavorite(props.product.id)
+    isFavorited.value = res.data.is_favorited
+  } catch (e) {
+    // handled by interceptor
+  }
+}
+
+// 检查收藏状态
+onMounted(async () => {
+  if (userStore.token && props.product.id) {
+    try {
+      const res = await checkFavorites([props.product.id])
+      isFavorited.value = res.data.includes(props.product.id)
+    } catch (e) {}
+  }
+})
 </script>
 
 <style scoped>
@@ -125,13 +158,39 @@ const handleDelete = () => {
   font-size: 12px;
   color: var(--text-light);
   background-color: #f0f2f5;
-  padding: 2px 8px;
+  padding: 2px 8px 2px 4px;
   border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.seller-mini-avatar {
+  flex-shrink: 0;
 }
 .action-bar {
   margin-top: 12px;
   border-top: 1px dashed #ebeef5;
   padding-top: 8px;
   text-align: right;
+}
+
+.fav-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.fav-btn:hover {
+  transform: scale(1.15);
 }
 </style>

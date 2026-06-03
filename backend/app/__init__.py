@@ -10,6 +10,8 @@ from app.api.product import product_bp
 from app.api.order import order_bp
 from app.api.user import user_bp
 from app.api.message import message_bp
+from app.api.favorite import favorite_bp
+from app.api.review import review_bp
 
 def create_app():
     app = Flask(__name__, static_folder='../static', static_url_path='/static')
@@ -29,6 +31,8 @@ def create_app():
     app.register_blueprint(product_bp, url_prefix='/api/products')
     app.register_blueprint(order_bp, url_prefix='/api/orders')
     app.register_blueprint(user_bp, url_prefix='/api/users')
-    app.register_blueprint(message_bp, url_prefix='/api/messages') 
+    app.register_blueprint(message_bp, url_prefix='/api/messages')
+    app.register_blueprint(favorite_bp, url_prefix='/api/favorites')
+    app.register_blueprint(review_bp, url_prefix='/api/reviews')
     
     return app

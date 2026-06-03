@@ -9,15 +9,7 @@
     <el-card class="detail-card" v-loading="loading">
       <div v-if="product" class="detail-layout">
         <div class="image-section">
-          <el-image
-            :src="product.image_url"
-            :preview-src-list="[product.image_url]"
-            fit="cover"
-            class="main-image">
-            <template #error>
-              <div class="image-error-slot">暂无图片</div>
-            </template>
-          </el-image>
+          <ImageGallery :images="product.image_urls && product.image_urls.length ? product.image_urls : (product.image_url ? [product.image_url] : [])" />
         </div>
 
         <div class="info-section">
@@ -30,6 +22,9 @@
 
           <div class="seller-box">
             <div class="seller-label">发布者</div>
+            <el-avatar :size="32" class="seller-avatar" @click="goToSeller">
+              <img v-if="product.seller_avatar_url" :src="product.seller_avatar_url" style="width:100%;height:100%;object-fit:cover" />
+            </el-avatar>
             <div class="seller-name" @click="goToSeller">
               {{ product.seller_name }}
             </div>
@@ -42,6 +37,17 @@
           </div>
 
           <div class="action-box">
+            <!-- 收藏按钮（非卖家可见） -->
+            <el-button
+              v-if="!isSeller && userStore.token"
+              circle
+              size="large"
+              :type="detailFavorited ? 'danger' : 'default'"
+              :icon="detailFavorited ? StarFilled : Star"
+              @click="handleDetailToggleFavorite"
+              class="fav-action-btn"
+            />
+
             <template v-if="isSeller">
               <el-button
                 v-if="product.status === 'active'"
@@ -116,19 +122,25 @@
         <el-form-item label="商品描述">
           <el-input v-model="editForm.description" type="textarea" :rows="4" maxlength="500" show-word-limit />
         </el-form-item>
-        <el-form-item label="更换图片">
-          <el-upload
-            class="image-uploader"
-            action="#"
-            :auto-upload="false"
-            :show-file-list="false"
-            :on-change="handleEditImageChange"
-            accept="image/png, image/jpeg, image/jpg, image/gif"
-          >
-            <img v-if="editPreviewUrl" :src="editPreviewUrl" class="preview-img" />
-            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
-          </el-upload>
-          <div class="upload-tip">留空则不更换图片</div>
+        <el-form-item label="更换图片 (最多5张)">
+          <div class="edit-images-grid">
+            <div v-for="(preview, idx) in editPreviewUrls" :key="'preview-'+idx" class="edit-preview-item">
+              <img :src="preview" class="edit-preview-img" />
+              <el-icon class="edit-preview-remove" @click="removeEditImage(idx)"><CircleClose /></el-icon>
+            </div>
+            <el-upload
+              v-if="editSelectedFiles.length + product?.image_urls?.length < 5"
+              class="image-uploader"
+              action="#"
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleEditImageChange"
+              accept="image/png, image/jpeg, image/jpg, image/gif"
+            >
+              <el-icon class="uploader-icon"><Plus /></el-icon>
+            </el-upload>
+          </div>
+          <div class="upload-tip">不选择新图片则不更换；选择后原图将全部替换</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -143,10 +155,12 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus, CircleClose, Star, StarFilled } from '@element-plus/icons-vue'
 import { getProductDetail, deleteProduct, updateProduct } from '../api/product'
 import { useUserStore } from '../stores/user'
 import { createOrder } from '../api/order'
+import { toggleFavorite, checkFavorites } from '../api/favorite'
+import ImageGallery from '../components/ImageGallery.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -155,13 +169,14 @@ const userStore = useUserStore()
 const product = ref(null)
 const loading = ref(true)
 const buying = ref(false)
+const detailFavorited = ref(false)
 
 // Edit dialog state
 const showEditDialog = ref(false)
 const editFormRef = ref(null)
 const editing = ref(false)
-const editSelectedFile = ref(null)
-const editPreviewUrl = ref('')
+const editSelectedFiles = ref([])
+const editPreviewUrls = ref([])
 const editForm = reactive({ title: '', category: 'other', price: 0, description: '' })
 const editRules = {
   title: [{ required: true, message: '请输入商品标题', trigger: 'blur' }],
@@ -188,11 +203,27 @@ const fetchDetail = async () => {
   try {
     const res = await getProductDetail(route.params.id)
     product.value = res.data
+    // 检查收藏状态
+    if (userStore.token && product.value) {
+      try {
+        const checkRes = await checkFavorites([product.value.id])
+        detailFavorited.value = checkRes.data.includes(product.value.id)
+      } catch (e) {}
+    }
   } catch (error) {
     setTimeout(() => router.replace('/'), 1500)
   } finally {
     loading.value = false
   }
+}
+
+const handleDetailToggleFavorite = async () => {
+  if (!product.value) return
+  try {
+    const res = await toggleFavorite(product.value.id)
+    detailFavorited.value = res.data.is_favorited
+    ElMessage.success(res.data.is_favorited ? '已添加收藏' : '已取消收藏')
+  } catch (e) {}
 }
 
 onMounted(() => fetchDetail())
@@ -253,19 +284,31 @@ const openEditDialog = () => {
   editForm.category = product.value.category || 'other'
   editForm.price = product.value.price
   editForm.description = product.value.description || ''
-  editSelectedFile.value = null
-  editPreviewUrl.value = ''
+  editSelectedFiles.value = []
+  editPreviewUrls.value = []
   showEditDialog.value = true
 }
 
 const handleEditImageChange = (uploadFile) => {
   const file = uploadFile.raw
+  if (!file) return
   if (file.size / 1024 / 1024 > 5) {
     ElMessage.error('图片大小不能超过 5MB!')
     return false
   }
-  editSelectedFile.value = file
-  editPreviewUrl.value = URL.createObjectURL(file)
+  const totalCount = editSelectedFiles.value.length + (product.value?.image_urls?.length || 0)
+  if (totalCount >= 5) {
+    ElMessage.warning('最多只能上传 5 张图片')
+    return false
+  }
+  editSelectedFiles.value.push(file)
+  editPreviewUrls.value.push(URL.createObjectURL(file))
+}
+
+const removeEditImage = (idx) => {
+  editSelectedFiles.value.splice(idx, 1)
+  URL.revokeObjectURL(editPreviewUrls.value[idx])
+  editPreviewUrls.value.splice(idx, 1)
 }
 
 const submitEdit = async () => {
@@ -278,8 +321,10 @@ const submitEdit = async () => {
     formData.append('category', editForm.category)
     formData.append('price', editForm.price)
     formData.append('description', editForm.description)
-    if (editSelectedFile.value) {
-      formData.append('image', editSelectedFile.value)
+    if (editSelectedFiles.value.length > 0) {
+      editSelectedFiles.value.forEach((file, idx) => {
+        formData.append(`image_${idx}`, file)
+      })
     }
     try {
       const res = await updateProduct(product.value.id, formData)
@@ -326,6 +371,9 @@ const submitEdit = async () => {
   border-top: 1px solid #f0f2f5; border-bottom: 1px solid #f0f2f5; margin-bottom: 24px;
 }
 .seller-label { color: var(--text-light); font-size: 14px; margin-right: 16px; }
+.seller-avatar {
+  cursor: pointer; flex-shrink: 0; background-color: var(--seu-green);
+}
 .seller-name {
   font-weight: 500; color: var(--seu-green); margin-right: auto; cursor: pointer;
   transition: opacity 0.2s;
@@ -354,4 +402,43 @@ const submitEdit = async () => {
 .uploader-icon { font-size: 28px; color: #8c939d; }
 .preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .upload-tip { font-size: 12px; color: var(--text-light); margin-top: 8px; }
+
+/* 多图编辑网格 */
+.edit-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+.edit-preview-item {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #d9d9d9;
+}
+.edit-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.edit-preview-remove {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 18px;
+  color: #F56C6C;
+  cursor: pointer;
+  background: white;
+  border-radius: 50%;
+}
+.image-uploader {
+  border: 1px dashed #d9d9d9; border-radius: 6px; cursor: pointer; overflow: hidden;
+  width: 88px; height: 88px; display: flex; justify-content: center; align-items: center;
+  background-color: #fafafa; transition: var(--el-transition-duration-fast);
+}
+.image-uploader:hover { border-color: var(--seu-green); }
+.uploader-icon { font-size: 28px; color: #8c939d; }
+.preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 </style>

@@ -18,7 +18,8 @@
           >
             <el-badge :value="contact.unread_count" :hidden="contact.unread_count === 0" class="badge-item">
               <el-avatar :size="40" style="background-color: var(--seu-yellow); color: var(--seu-black)">
-                {{ contact.username.charAt(0).toUpperCase() }}
+                <img v-if="contact.avatar_url" :src="contact.avatar_url" style="width:100%;height:100%;object-fit:cover" />
+                <span v-else>{{ contact.username.charAt(0).toUpperCase() }}</span>
               </el-avatar>
             </el-badge>
             <div class="contact-info">

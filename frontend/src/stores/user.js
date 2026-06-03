@@ -11,8 +11,14 @@ export const useUserStore = defineStore('user', () => {
   };
 
   const setUserInfo = (info) => {
-    userInfo.value = info;
-    localStorage.setItem('userInfo', JSON.stringify(info));
+    // 合并而非替换，保留未传入的字段（如 avatar_url）
+    userInfo.value = { ...userInfo.value, ...info };
+    localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
+  };
+
+  const updateAvatarUrl = (url) => {
+    userInfo.value.avatar_url = url;
+    localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
   };
 
   const logout = () => {
@@ -22,5 +28,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('userInfo');
   };
 
-  return { token, userInfo, setToken, setUserInfo, logout };
+  return { token, userInfo, setToken, setUserInfo, updateAvatarUrl, logout };
 });

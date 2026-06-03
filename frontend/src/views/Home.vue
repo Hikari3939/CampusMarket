@@ -24,6 +24,8 @@
         </div>
 
         <div class="user-actions">
+          <el-button :icon="themeStore.isDark ? Sunny : Moon" circle @click="themeStore.toggleTheme" class="theme-toggle-btn" />
+
           <el-button type="primary" :icon="Plus" @click="goToPublish" round>
             发布闲置
           </el-button>
@@ -60,6 +62,15 @@
         >
           {{ cat.label }}
         </el-tag>
+      </div>
+
+      <!-- 价格区间筛选 -->
+      <div class="price-filter">
+        <span class="price-label">价格区间：</span>
+        <el-input-number v-model="minPrice" :min="0" placeholder="最低价" controls-position="right" size="small" @change="handlePriceFilter" />
+        <span class="price-separator">—</span>
+        <el-input-number v-model="maxPrice" :min="0" placeholder="最高价" controls-position="right" size="small" @change="handlePriceFilter" />
+        <el-button v-if="minPrice || maxPrice" size="small" @click="clearPriceFilter">清除</el-button>
       </div>
 
       <!-- 商品网格 -->
@@ -111,14 +122,16 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, Plus, ArrowDown, Loading } from '@element-plus/icons-vue'
+import { Search, Plus, ArrowDown, Loading, Sunny, Moon } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ProductCard from '../components/ProductCard.vue'
 import { getProducts, deleteProduct } from '../api/product'
 import { useUserStore } from '../stores/user'
+import { useThemeStore } from '../stores/theme'
 
 const router = useRouter()
 const userStore = useUserStore()
+const themeStore = useThemeStore()
 
 const products = ref([])
 const searchKeyword = ref('')
@@ -128,6 +141,8 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const perPage = 12
 const activeCategory = ref('')
+const minPrice = ref(null)
+const maxPrice = ref(null)
 const sentinelRef = ref(null)
 let observer = null
 
@@ -148,6 +163,8 @@ const buildParams = (page = 1) => {
   const params = { page, per_page: perPage }
   if (searchKeyword.value) params.keyword = searchKeyword.value
   if (activeCategory.value) params.category = activeCategory.value
+  if (minPrice.value !== null && minPrice.value !== undefined) params.min_price = minPrice.value
+  if (maxPrice.value !== null && maxPrice.value !== undefined) params.max_price = maxPrice.value
   return params
 }
 
@@ -191,6 +208,19 @@ const handleSearch = () => {
 // 分类筛选
 const selectCategory = (value) => {
   activeCategory.value = value === activeCategory.value ? '' : value
+  products.value = []
+  fetchProducts()
+}
+
+// 价格区间筛选
+const handlePriceFilter = () => {
+  products.value = []
+  fetchProducts()
+}
+
+const clearPriceFilter = () => {
+  minPrice.value = null
+  maxPrice.value = null
   products.value = []
   fetchProducts()
 }
@@ -289,6 +319,8 @@ const handleDeleteClick = (id) => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.03); border-radius: 4px;
 }
 .user-actions { flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 20px; }
+.theme-toggle-btn { border: none; background: transparent; color: var(--text-main); font-size: 20px; }
+.theme-toggle-btn:hover { color: var(--seu-orange); }
 .user-dropdown-link {
   cursor: pointer; color: var(--seu-black); display: flex; align-items: center;
   font-weight: 500; padding: 4px 8px; border-radius: 4px; transition: background-color 0.3s;
@@ -312,6 +344,23 @@ const handleDeleteClick = (id) => {
 }
 .category-tag:hover {
   transform: translateY(-1px);
+}
+
+/* 价格区间筛选 */
+.price-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.price-label {
+  font-size: 14px;
+  color: var(--text-light);
+}
+.price-separator {
+  color: var(--text-light);
+  font-size: 14px;
 }
 
 /* 主内容区 */
