@@ -1,4 +1,3 @@
-<!-- src/views/Home.vue -->
 <template>
   <div class="home-layout">
     <header class="app-header">
@@ -50,7 +49,6 @@
     </header>
 
     <main class="page-container main-content">
-      <!-- 分类筛选标签 -->
       <div class="category-filter">
         <el-tag
           v-for="cat in categories"
@@ -64,7 +62,6 @@
         </el-tag>
       </div>
 
-      <!-- 价格区间筛选 -->
       <div class="price-filter">
         <span class="price-label">价格区间：</span>
         <el-input-number v-model="minPrice" :min="0" placeholder="最低价" controls-position="right" size="small" @change="handlePriceFilter" />
@@ -73,9 +70,7 @@
         <el-button v-if="minPrice || maxPrice" size="small" @click="clearPriceFilter">清除</el-button>
       </div>
 
-      <!-- 商品网格 -->
       <div class="product-grid">
-        <!-- 骨架屏（首次加载） -->
         <template v-if="initialLoading">
           <div v-for="n in 8" :key="'s'+n" class="skeleton-card">
             <el-skeleton animated>
@@ -90,7 +85,6 @@
           </div>
         </template>
 
-        <!-- 商品卡片 -->
         <template v-else>
           <ProductCard
             v-for="item in products"
@@ -101,17 +95,14 @@
           />
         </template>
 
-        <!-- 空状态 -->
         <el-empty v-if="!initialLoading && products.length === 0" description="暂无相关商品，快去抢首发吧！" class="empty-state" />
       </div>
 
-      <!-- 加载更多指示器 -->
       <div v-if="!initialLoading && hasMore" class="load-more-area" ref="sentinelRef">
         <el-icon v-if="loadingMore" class="is-loading" :size="24"><Loading /></el-icon>
         <span v-else class="load-hint">上滑加载更多</span>
       </div>
 
-      <!-- 已全部加载 -->
       <div v-if="!hasMore && products.length > 0" class="load-more-area">
         <span class="load-hint">— 已经到底了 —</span>
       </div>
@@ -158,7 +149,6 @@ const categories = [
 
 const hasMore = computed(() => currentPage.value < totalPages.value)
 
-// 构建查询参数
 const buildParams = (page = 1) => {
   const params = { page, per_page: perPage }
   if (searchKeyword.value) params.keyword = searchKeyword.value
@@ -168,7 +158,6 @@ const buildParams = (page = 1) => {
   return params
 }
 
-// 获取商品（首页或刷新）
 const fetchProducts = async () => {
   initialLoading.value = true
   currentPage.value = 1
@@ -176,14 +165,11 @@ const fetchProducts = async () => {
     const res = await getProducts(buildParams(1))
     products.value = res.data
     totalPages.value = res.pagination.pages
-  } catch (error) {
-    // interceptor handles
   } finally {
     initialLoading.value = false
   }
 }
 
-// 加载更多（无限滚动）
 const loadMore = async () => {
   if (!hasMore.value || loadingMore.value || initialLoading.value) return
   loadingMore.value = true
@@ -193,26 +179,23 @@ const loadMore = async () => {
     products.value.push(...res.data)
     totalPages.value = res.pagination.pages
   } catch (error) {
-    currentPage.value-- // rollback on error
+    currentPage.value--
   } finally {
     loadingMore.value = false
   }
 }
 
-// 搜索触发
 const handleSearch = () => {
   activeCategory.value = ''
   fetchProducts()
 }
 
-// 分类筛选
 const selectCategory = (value) => {
   activeCategory.value = value === activeCategory.value ? '' : value
   products.value = []
   fetchProducts()
 }
 
-// 价格区间筛选
 const handlePriceFilter = () => {
   products.value = []
   fetchProducts()
@@ -225,7 +208,6 @@ const clearPriceFilter = () => {
   fetchProducts()
 }
 
-// IntersectionObserver 无限滚动
 const setupObserver = () => {
   if (!sentinelRef.value) return
   observer = new IntersectionObserver((entries) => {
@@ -238,7 +220,6 @@ const setupObserver = () => {
 
 onMounted(() => {
   fetchProducts()
-  // 延迟设置 observer 等 DOM 渲染完毕
   setTimeout(setupObserver, 500)
 })
 
@@ -292,7 +273,6 @@ const handleDeleteClick = (id) => {
   flex-direction: column;
 }
 
-/* 顶部导航栏 */
 .app-header {
   background-color: #ffffff;
   box-shadow: var(--box-shadow-base);
@@ -327,7 +307,6 @@ const handleDeleteClick = (id) => {
 }
 .user-dropdown-link:hover { background-color: #f4f6f8; }
 
-/* 分类筛选 */
 .category-filter {
   display: flex;
   gap: 10px;
@@ -346,7 +325,6 @@ const handleDeleteClick = (id) => {
   transform: translateY(-1px);
 }
 
-/* 价格区间筛选 */
 .price-filter {
   display: flex;
   align-items: center;
@@ -363,7 +341,6 @@ const handleDeleteClick = (id) => {
   font-size: 14px;
 }
 
-/* 主内容区 */
 .main-content {
   flex: 1;
   width: 100%;
@@ -383,7 +360,6 @@ const handleDeleteClick = (id) => {
   grid-column: 1 / -1;
 }
 
-/* 骨架屏 */
 .skeleton-card {
   border-radius: var(--border-radius-base);
   overflow: hidden;
@@ -391,7 +367,6 @@ const handleDeleteClick = (id) => {
   box-shadow: var(--box-shadow-base);
 }
 
-/* 加载区域 */
 .load-more-area {
   display: flex;
   justify-content: center;

@@ -1,4 +1,3 @@
-<!-- src/views/ProductDetail.vue -->
 <template>
   <div class="page-container">
     <el-breadcrumb separator="/" class="breadcrumb">
@@ -37,7 +36,6 @@
           </div>
 
           <div class="action-box">
-            <!-- 收藏按钮（非卖家可见） -->
             <el-button
               v-if="!isSeller && userStore.token"
               circle
@@ -100,7 +98,6 @@
       <el-empty v-else-if="!loading" description="抱歉，商品已走丢~" />
     </el-card>
 
-    <!-- 编辑商品对话框 -->
     <el-dialog v-model="showEditDialog" title="编辑商品" width="600px" :close-on-click-modal="false">
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-position="top">
         <el-form-item label="商品标题" prop="title">
@@ -171,7 +168,6 @@ const loading = ref(true)
 const buying = ref(false)
 const detailFavorited = ref(false)
 
-// Edit dialog state
 const showEditDialog = ref(false)
 const editFormRef = ref(null)
 const editing = ref(false)
@@ -203,7 +199,6 @@ const fetchDetail = async () => {
   try {
     const res = await getProductDetail(route.params.id)
     product.value = res.data
-    // 检查收藏状态
     if (userStore.token && product.value) {
       try {
         const checkRes = await checkFavorites([product.value.id])
@@ -277,7 +272,6 @@ const handleContact = () => {
   router.push({ path: '/chat', query: { userId: product.value.seller_id } })
 }
 
-// --- Edit dialog logic ---
 const openEditDialog = () => {
   if (!product.value) return
   editForm.title = product.value.title
@@ -331,8 +325,6 @@ const submitEdit = async () => {
       product.value = res.data
       ElMessage.success('商品更新成功')
       showEditDialog.value = false
-    } catch (error) {
-      // handled by interceptor
     } finally {
       editing.value = false
     }
@@ -350,11 +342,6 @@ const submitEdit = async () => {
 .image-section {
   width: 100%; aspect-ratio: 1 / 1;
   background-color: #f5f7fa; border-radius: var(--border-radius-base); overflow: hidden;
-}
-.main-image { width: 100%; height: 100%; cursor: zoom-in; }
-.image-error-slot {
-  display: flex; justify-content: center; align-items: center;
-  height: 100%; color: var(--text-light);
 }
 .info-section { display: flex; flex-direction: column; }
 .product-title {
@@ -392,18 +379,6 @@ const submitEdit = async () => {
 .contact-btn:hover { background-color: rgba(88, 117, 88, 0.05) !important; }
 .buy-btn { box-shadow: 0 4px 12px rgba(88, 117, 88, 0.3); }
 
-/* Edit dialog image uploader */
-.image-uploader {
-  border: 1px dashed #d9d9d9; border-radius: 6px; cursor: pointer; overflow: hidden;
-  width: 178px; height: 178px; display: flex; justify-content: center; align-items: center;
-  background-color: #fafafa; transition: var(--el-transition-duration-fast);
-}
-.image-uploader:hover { border-color: var(--seu-green); }
-.uploader-icon { font-size: 28px; color: #8c939d; }
-.preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.upload-tip { font-size: 12px; color: var(--text-light); margin-top: 8px; }
-
-/* 多图编辑网格 */
 .edit-images-grid {
   display: flex;
   flex-wrap: wrap;
@@ -440,5 +415,5 @@ const submitEdit = async () => {
 }
 .image-uploader:hover { border-color: var(--seu-green); }
 .uploader-icon { font-size: 28px; color: #8c939d; }
-.preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.upload-tip { font-size: 12px; color: var(--text-light); margin-top: 8px; }
 </style>

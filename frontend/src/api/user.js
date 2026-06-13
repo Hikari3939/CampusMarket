@@ -1,46 +1,16 @@
 import request from './request'
 
-// 获取我发布的历史
-export const getMyPublished = () => {
-  return request({
-    url: '/users/me/published',
-    method: 'GET'
-  })
-}
+export const getMyPublished = () => request.get('/users/me/published')
 
-// 获取我购买的历史
-export const getMyBought = () => {
-  return request({
-    url: '/users/me/bought',
-    method: 'GET'
-  })
-}
+export const getMyBought = () => request.get('/users/me/bought')
 
-// 修改个人资料（用户名 + 可选头像文件）
 export const updateProfile = (data) => {
-  // 如果是 FormData（包含头像文件），设置 Content-Type
   const isFormData = data instanceof FormData
-  return request({
-    url: '/users/me',
-    method: 'PUT',
-    data,
+  return request.put('/users/me', data, {
     headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {}
   })
 }
 
-// 修改密码
-export const updatePassword = (data) => {
-  return request({
-    url: '/users/me/password',
-    method: 'PUT',
-    data
-  })
-}
+export const updatePassword = (data) => request.put('/users/me/password', data)
 
-// 获取用户公开主页
-export const getUserProfile = (id) => {
-  return request({
-    url: `/users/${id}/profile`,
-    method: 'GET'
-  })
-}
+export const getUserProfile = (id) => request.get(`/users/${id}/profile`)

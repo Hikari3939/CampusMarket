@@ -1,4 +1,3 @@
-# app/api/user.py
 import os
 import uuid
 from flask import Blueprint, request, jsonify, current_app
@@ -8,23 +7,15 @@ from app.models import Product, Order, User, Review
 from app.extensions import db
 from app.api.auth import validate_password_strength
 
-# 创建用户蓝图
 user_bp = Blueprint('user', __name__)
-
 
 @user_bp.route('/me/published', methods=['GET'])
 @jwt_required()
 def get_my_published():
-    """
-    获取我发布的商品历史
-    路径: GET /api/users/me/published
-    """
     current_user_id = int(get_jwt_identity())
 
-    # 按照创建时间倒序排列
     products = Product.query.filter_by(seller_id=current_user_id).order_by(Product.created_at.desc()).all()
 
-    # 序列化数据
     data = []
     for p in products:
         data.append({
@@ -42,17 +33,11 @@ def get_my_published():
         "data": data
     }), 200
 
-
 @user_bp.route('/me/bought', methods=['GET'])
 @jwt_required()
 def get_my_bought():
-    """
-    获取我购买的订单历史
-    路径: GET /api/users/me/bought
-    """
     current_user_id = int(get_jwt_identity())
 
-    # 查询买家为当前用户的订单，并关联查询商品信息
     orders = Order.query.filter_by(buyer_id=current_user_id).order_by(Order.created_at.desc()).all()
 
     data = []
@@ -77,19 +62,11 @@ def get_my_bought():
         "data": data
     }), 200
 
-
 @user_bp.route('/me', methods=['PUT'])
 @jwt_required()
 def update_profile():
-    """
-    修改个人资料（支持用户名和头像）
-    路径: PUT /api/users/me
-    支持 JSON: { "username": "新用户名" }
-    支持 FormData: username + avatar(文件)
-    """
     current_user_id = int(get_jwt_identity())
 
-    # 判断请求类型：JSON 还是 FormData
     if request.is_json:
         data = request.get_json()
         username = data.get('username', '').strip()
@@ -103,7 +80,6 @@ def update_profile():
     if len(username) < 2 or len(username) > 50:
         return jsonify({"msg": "用户名长度应在2-50个字符之间"}), 400
 
-    # 检查用户名是否被其他用户占用
     existing = User.query.filter(User.username == username, User.id != current_user_id).first()
     if existing:
         return jsonify({"msg": "该用户名已被使用"}), 400
@@ -111,14 +87,12 @@ def update_profile():
     user = User.query.get(current_user_id)
     user.username = username
 
-    # 处理头像上传
     if avatar_file and avatar_file.filename != '':
         allowed_exts = current_app.config.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
         ext = avatar_file.filename.rsplit('.', 1)[-1].lower() if '.' in avatar_file.filename else ''
         if ext not in allowed_exts:
             return jsonify({"msg": "不支持的图片格式，仅支持 png, jpg, jpeg, gif"}), 400
 
-        # 删除旧头像文件
         if user.avatar_url:
             old_filename = user.avatar_url.rsplit('/', 1)[-1]
             old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars', old_filename)
@@ -128,7 +102,6 @@ def update_profile():
             except OSError:
                 pass
 
-        # 保存新头像
         avatars_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'avatars')
         os.makedirs(avatars_dir, exist_ok=True)
         filename = f"{uuid.uuid4().hex}.{ext}"
@@ -146,19 +119,13 @@ def update_profile():
                 "avatar_url": user.avatar_url
             }
         }), 200
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         return jsonify({"msg": "更新失败"}), 500
-
 
 @user_bp.route('/me/password', methods=['PUT'])
 @jwt_required()
 def update_password():
-    """
-    修改密码（需验证旧密码）
-    路径: PUT /api/users/me/password
-    Body: { "old_password": "...", "new_password": "..." }
-    """
     current_user_id = int(get_jwt_identity())
     data = request.get_json()
     old_password = data.get('old_password', '')
@@ -169,11 +136,9 @@ def update_password():
 
     user = User.query.get(current_user_id)
 
-    # 验证旧密码
     if not check_password_hash(user.password_hash, old_password):
         return jsonify({"msg": "旧密码不正确"}), 400
 
-    # 新密码强度校验
     is_valid, error_msg = validate_password_strength(new_password)
     if not is_valid:
         return jsonify({"msg": error_msg}), 400
@@ -183,27 +148,20 @@ def update_password():
     try:
         db.session.commit()
         return jsonify({"msg": "密码修改成功"}), 200
-    except Exception as e:
+    except Exception:
         db.session.rollback()
         return jsonify({"msg": "修改失败"}), 500
 
-
 @user_bp.route('/<int:user_id>/profile', methods=['GET'])
 def get_user_profile(user_id):
-    """
-    获取用户公开主页（无需登录）
-    路径: GET /api/users/<id>/profile
-    """
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "用户不存在"}), 404
 
-    # 仅展示在售商品
     products = Product.query.filter_by(
         seller_id=user_id, status='active'
     ).order_by(Product.created_at.desc()).all()
 
-    # 获取评价统计
     avg_rating_result = db.session.query(db.func.avg(Review.rating)).filter(
         Review.reviewee_id == user_id
     ).scalar()
@@ -225,14 +183,8 @@ def get_user_profile(user_id):
         }
     }), 200
 
-
 @user_bp.route('/<int:user_id>/reviews', methods=['GET'])
 def get_user_reviews(user_id):
-    """
-    获取用户收到的评价列表
-    路径: GET /api/users/<id>/reviews
-    公开接口，无需登录
-    """
     user = User.query.get(user_id)
     if not user:
         return jsonify({"msg": "用户不存在"}), 404

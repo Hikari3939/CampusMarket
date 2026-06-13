@@ -1,4 +1,3 @@
-<!-- src/views/Profile.vue -->
 <template>
   <div class="page-container">
     <div class="profile-header">
@@ -55,7 +54,6 @@
               />
             </div>
 
-            <!-- 分页 -->
             <div v-if="favoritesTotal > favoritesList.length" class="load-more-area">
               <el-button :loading="loadingMoreFavorites" @click="loadMoreFavorites">加载更多</el-button>
             </div>
@@ -109,7 +107,6 @@
       </el-tabs>
     </el-card>
 
-    <!-- 编辑资料对话框 -->
     <el-dialog v-model="showProfileDialog" title="编辑个人资料" width="480px" :close-on-click-modal="false">
       <el-tabs>
         <el-tab-pane label="修改用户名">
@@ -157,7 +154,6 @@
       </el-tabs>
     </el-dialog>
 
-    <!-- 评价对话框 -->
     <el-dialog v-model="showReviewDialog" title="评价交易" width="420px" :close-on-click-modal="false">
       <el-form :model="reviewForm" ref="reviewFormRef" label-position="top">
         <el-form-item label="评分" required>
@@ -209,7 +205,6 @@ const statusMap = {
   'deleted': '已下架'
 }
 
-// --- Edit profile dialog ---
 const showProfileDialog = ref(false)
 const profileFormRef = ref(null)
 const passwordFormRef = ref(null)
@@ -257,7 +252,6 @@ const passwordRules = {
   ]
 }
 
-// Watch dialog open to pre-fill
 const openEditDialog = () => {
   profileForm.username = userStore.userInfo?.username || ''
   avatarSelectedFile.value = null
@@ -283,7 +277,6 @@ const submitProfile = async () => {
     try {
       let res
       if (avatarSelectedFile.value) {
-        // 有头像文件时使用 FormData
         const formData = new FormData()
         formData.append('username', profileForm.username)
         formData.append('avatar', avatarSelectedFile.value)
@@ -322,7 +315,6 @@ const submitPassword = async () => {
   })
 }
 
-// --- Reviews ---
 const showReviewDialog = ref(false)
 const reviewFormRef = ref(null)
 const submittingReview = ref(false)
@@ -350,14 +342,12 @@ const submitReview = async () => {
     })
     ElMessage.success('评价提交成功')
     showReviewDialog.value = false
-    // 标记已评价
     currentReviewOrder.value.reviewed = true
   } catch (e) {} finally {
     submittingReview.value = false
   }
 }
 
-// --- Order cancel ---
 const handleCancelOrder = (order) => {
   ElMessageBox.confirm('取消订单后商品将重新上架，确定要取消吗？', '确认取消', {
     confirmButtonText: '确定', cancelButtonText: '再想想', type: 'warning',
@@ -371,7 +361,6 @@ const handleCancelOrder = (order) => {
   }).catch(() => {})
 }
 
-// --- Data fetching ---
 const fetchPublished = async () => {
   if (publishedList.value.length > 0) return
   loadingPublished.value = true
@@ -389,7 +378,6 @@ const fetchBought = async () => {
   try {
     const res = await getMyBought()
     boughtList.value = res.data
-    // 检查每个订单的评价状态
     for (const order of boughtList.value) {
       if (order.order_status === 'completed') {
         try {
@@ -405,7 +393,6 @@ const fetchBought = async () => {
   }
 }
 
-// --- Favorites ---
 const fetchFavorites = async () => {
   if (favoritesList.value.length > 0) return
   loadingFavorites.value = true
@@ -440,7 +427,6 @@ const handleTabChange = (tabName) => {
 }
 
 onMounted(() => {
-  // Pre-fill profile form
   profileForm.username = userStore.userInfo?.username || ''
   if (route.query.tab === 'bought') {
     activeTab.value = 'bought'
@@ -561,7 +547,6 @@ onMounted(() => {
   border-radius: 4px;
 }
 
-/* 收藏商品网格 */
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -574,7 +559,6 @@ onMounted(() => {
   width: 100%;
 }
 
-/* 头像上传 */
 .avatar-upload-row {
   display: flex;
   align-items: center;

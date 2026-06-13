@@ -1,8 +1,7 @@
-# run.py
 import os
 from dotenv import load_dotenv
 
-load_dotenv()  # 确保 run.py 同级目录的 .env 被加载
+load_dotenv()
 
 from gevent import monkey
 monkey.patch_all()
@@ -17,5 +16,4 @@ if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', '5000'))
     debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
 
-    # 采用 socketio 启动，gevent 将接管服务器运行
     socketio.run(app, host=host, port=port, debug=debug)

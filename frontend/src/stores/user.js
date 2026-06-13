@@ -11,7 +11,6 @@ export const useUserStore = defineStore('user', () => {
   };
 
   const setUserInfo = (info) => {
-    // 合并而非替换，保留未传入的字段（如 avatar_url）
     userInfo.value = { ...userInfo.value, ...info };
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
   };

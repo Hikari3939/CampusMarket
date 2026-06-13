@@ -1,6 +1,5 @@
-// src/stores/theme.js
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 export const useThemeStore = defineStore('theme', () => {
   const isDark = ref(localStorage.getItem('theme') === 'dark')
@@ -19,7 +18,6 @@ export const useThemeStore = defineStore('theme', () => {
     applyTheme()
   }
 
-  // 页面加载时立即应用主题
   applyTheme()
 
   return { isDark, toggleTheme }

@@ -1,31 +1,23 @@
-/* src/style.css */
 :root {
-  /* 东南大学 VIS 核心色彩 */
   --seu-green: #587558;
   --seu-yellow: #fdd000;
   --seu-black: #231815;
-  
-  /* 东南大学 VIS 辅助色彩 */
   --seu-orange: #F6AB00;
   --seu-dark-blue: #151E49;
 
-  /* UI 辅助色 */
   --bg-color: #f4f6f8;
   --text-main: #333333;
   --text-light: #999999;
-  
-  /* 覆盖 Element Plus 的主色调为东南绿 */
-  --el-color-primary: var(--seu-green) !important;
-  --el-color-primary-light-3: #799179 !important; /* 减轻的绿色，用于悬浮 */
-  --el-color-primary-dark-2: #465e46 !important; /* 加深的绿色，用于点击 */
 
-  /* 定义全局卡片阴影规范，体现层级感 */
-  --box-shadow-base: 0 4px 12px rgba(35, 24, 21, 0.05); /* 基于 SEU-Black 的极轻微阴影 */
+  --el-color-primary: var(--seu-green) !important;
+  --el-color-primary-light-3: #799179 !important;
+  --el-color-primary-dark-2: #465e46 !important;
+
+  --box-shadow-base: 0 4px 12px rgba(35, 24, 21, 0.05);
   --box-shadow-hover: 0 8px 24px rgba(35, 24, 21, 0.12);
   --border-radius-base: 8px;
 }
 
-/* 扁平化全局 Reset */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -44,7 +36,6 @@ a {
   color: var(--seu-green);
 }
 
-/* 覆盖 Element Plus 默认样式，趋向无边框极简风 */
 .el-card {
   border: none !important;
   box-shadow: var(--box-shadow-base) !important;
@@ -60,24 +51,20 @@ a {
   background-color: var(--seu-green) !important;
   border-color: var(--seu-green) !important;
 }
-/* 价格文字使用东南辅助色：活力橙，醒目且合规 */
+
 .text-price {
   color: var(--seu-orange);
   font-weight: bold;
   font-size: 1.25rem;
 }
 
-/* 页面通用容器 */
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
 }
 
-/* ============================================
-   暗色模式 (Dark Mode)
-   通过 html.dark 类名切换
-   ============================================ */
+/* ========== Dark Mode ========== */
 html.dark {
   --bg-color: #1a1a2e;
   --text-main: #e0e0e0;
@@ -91,13 +78,11 @@ html.dark body {
   color: #e0e0e0;
 }
 
-/* 顶栏 */
 html.dark .app-header {
   background-color: #16213e !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* 卡片 */
 html.dark .el-card {
   background-color: #16213e !important;
   border-color: #2a2a4a !important;
@@ -107,7 +92,6 @@ html.dark .el-card:hover {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* 输入框 */
 html.dark .el-input__wrapper {
   background-color: #1a1a2e;
   box-shadow: 0 0 0 1px #2a2a4a inset;
@@ -119,7 +103,6 @@ html.dark .el-input__wrapper:hover {
   box-shadow: 0 0 0 1px #3a3a5a inset;
 }
 
-/* 下拉菜单 */
 html.dark .el-dropdown-menu {
   background-color: #16213e;
 }
@@ -130,14 +113,12 @@ html.dark .el-dropdown-menu__item:hover {
   background-color: #1a1a2e;
 }
 
-/* 标签 (分类筛选) */
 html.dark .el-tag--plain {
   background-color: #1a1a2e;
   border-color: #2a2a4a;
   color: #aaa;
 }
 
-/* 对话框 */
 html.dark .el-dialog {
   background-color: #16213e;
 }
@@ -148,12 +129,10 @@ html.dark .el-dialog__body {
   color: #ccc;
 }
 
-/* 表单 */
 html.dark .el-form-item__label {
   color: #aaa;
 }
 
-/* 分页 */
 html.dark .el-pagination button,
 html.dark .el-pager li {
   background-color: #1a1a2e;
@@ -163,12 +142,10 @@ html.dark .el-pager li.is-active {
   background-color: var(--seu-green);
 }
 
-/* 面包屑 */
 html.dark .el-breadcrumb__inner {
   color: #aaa;
 }
 
-/* Tab */
 html.dark .el-tabs__item {
   color: #aaa;
 }
@@ -176,22 +153,18 @@ html.dark .el-tabs__item.is-active {
   color: var(--seu-green);
 }
 
-/* 空状态 */
 html.dark .el-empty__description p {
   color: #666;
 }
 
-/* 骨架屏 */
 html.dark .el-skeleton__item {
   background-color: #1a1a2e;
 }
 
-/* 登录页 */
 html.dark .login-container {
   background-color: #1a1a2e;
 }
 
-/* 聊天页 — 左侧联系人栏 */
 html.dark .sidebar {
   background-color: #0f3460;
   border-right-color: #2a2a4a;
@@ -216,7 +189,6 @@ html.dark .contact-name {
   color: #e0e0e0;
 }
 
-/* 聊天页 — 消息区域 */
 html.dark .chat-header {
   border-bottom-color: #2a2a4a;
   color: #e0e0e0;
@@ -237,11 +209,7 @@ html.dark .msg-input :deep(.el-textarea__inner) {
   background-color: #1a1a2e;
   color: #e0e0e0;
 }
-html.dark .action-bar {
-  /* inherit bg */
-}
 
-/* 商品详情页 */
 html.dark .image-section {
   background-color: #1a1a2e;
 }
@@ -262,7 +230,6 @@ html.dark .desc-content {
   color: #aaa;
 }
 
-/* 商品卡片 */
 html.dark .product-card {
   background-color: #16213e;
 }
@@ -274,7 +241,6 @@ html.dark .title {
   color: #e0e0e0;
 }
 
-/* 个人中心 */
 html.dark .profile-header h2 {
   color: #e0e0e0;
 }
@@ -288,12 +254,10 @@ html.dark .item-img {
   background-color: #1a1a2e;
 }
 
-/* 发布页 */
 html.dark .publish-card h2 {
   color: #e0e0e0;
 }
 
-/* 按钮 hover 微调 */
 html.dark .el-button--default {
   background-color: #2a2a4a;
   border-color: #3a3a5a;
@@ -305,12 +269,10 @@ html.dark .el-button--default:hover {
   color: #fff;
 }
 
-/* 选择器 */
 html.dark .el-select .el-input__wrapper {
   background-color: #1a1a2e;
 }
 
-/* 数字输入 */
 html.dark .el-input-number__decrease,
 html.dark .el-input-number__increase {
   background-color: #16213e;
@@ -320,7 +282,6 @@ html.dark .el-input-number .el-input__wrapper {
   background-color: #1a1a2e;
 }
 
-/* 用户下拉链接 */
 html.dark .user-dropdown-link {
   color: #e0e0e0;
 }
@@ -328,12 +289,10 @@ html.dark .user-dropdown-link:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Element Plus 全局过渡 */
 html.dark .el-popper.is-dark {
   background-color: #16213e;
 }
 
-/* 上传组件 */
 html.dark .image-uploader {
   background-color: #1a1a2e;
   border-color: #2a2a4a;
@@ -342,18 +301,15 @@ html.dark .image-uploader:hover {
   border-color: var(--seu-green);
 }
 
-/* 进度条底色 */
 html.dark .el-progress-bar__outer {
   background-color: #2a2a4a;
 }
 
-/* 联系卖家按钮 */
 html.dark .contact-btn {
   border-color: var(--seu-green) !important;
   color: var(--seu-green) !important;
 }
 
-/* 加载提示 */
 html.dark .load-hint {
   color: #666;
 }

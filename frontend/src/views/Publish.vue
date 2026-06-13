@@ -1,10 +1,8 @@
-<!-- src/views/Publish.vue -->
 <template>
   <div class="page-container">
     <el-card class="publish-card">
       <h2 class="page-title">发布闲置</h2>
 
-      <!-- 上传进度条 -->
       <el-progress
         v-if="uploadPercent > 0 && uploadPercent < 100"
         :percentage="uploadPercent"
@@ -93,7 +91,6 @@ const formRef = ref(null)
 const submitting = ref(false)
 const uploadPercent = ref(0)
 
-// 分类选项
 const categories = [
   { label: '教材教辅', value: 'textbook' },
   { label: '电子数码', value: 'electronics' },
@@ -103,7 +100,6 @@ const categories = [
   { label: '其他', value: 'other' },
 ]
 
-// 表单数据
 const form = reactive({
   title: '',
   category: 'other',
@@ -111,18 +107,15 @@ const form = reactive({
   description: '',
 })
 
-// 图片相关
 const selectedFiles = ref([])
 const previewUrls = ref([])
 
-// 表单校验规则
 const rules = {
   title: [{ required: true, message: '请输入商品标题', trigger: 'blur' }],
   price: [{ required: true, message: '请设置商品价格', trigger: 'blur' }],
   category: [{ required: true, message: '请选择商品分类', trigger: 'change' }],
 }
 
-// 处理图片选择与本地预览
 const handleImageChange = (uploadFile) => {
   const file = uploadFile.raw
   if (!file) return
@@ -138,14 +131,12 @@ const handleImageChange = (uploadFile) => {
   previewUrls.value.push(URL.createObjectURL(file))
 }
 
-// 移除待上传图片
 const removePublishImage = (idx) => {
   selectedFiles.value.splice(idx, 1)
   URL.revokeObjectURL(previewUrls.value[idx])
   previewUrls.value.splice(idx, 1)
 }
 
-// 提交表单
 const submitForm = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
@@ -158,13 +149,11 @@ const submitForm = async () => {
       submitting.value = true
       uploadPercent.value = 0
 
-      // 构建 FormData
       const formData = new FormData()
       formData.append('title', form.title)
       formData.append('price', form.price)
       formData.append('category', form.category)
       formData.append('description', form.description)
-      // 以 image_0, image_1... 格式发送多图
       selectedFiles.value.forEach((file, idx) => {
         formData.append(`image_${idx}`, file)
       })
@@ -179,8 +168,6 @@ const submitForm = async () => {
         })
         ElMessage.success('发布成功！')
         router.push('/')
-      } catch (error) {
-        // Axios 拦截器已处理报错
       } finally {
         submitting.value = false
         uploadPercent.value = 0
@@ -201,7 +188,7 @@ const submitForm = async () => {
   margin-bottom: 24px;
   text-align: center;
 }
-/* 多图上传网格 */
+
 .publish-images-grid {
   display: flex;
   flex-wrap: wrap;
@@ -251,12 +238,6 @@ const submitForm = async () => {
 .uploader-icon {
   font-size: 28px;
   color: #8c939d;
-}
-.preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 .upload-tip {
   font-size: 12px;

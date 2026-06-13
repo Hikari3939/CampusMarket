@@ -1,16 +1,14 @@
-<!-- src/views/Chat.vue -->
 <template>
   <div class="page-container chat-layout">
     <el-card class="chat-card" :body-style="{ padding: 0, display: 'flex', height: '100%' }">
-      
-      <!-- 左侧：联系人列表 -->
+
       <div class="sidebar">
         <div class="sidebar-header">
           <h3>消息中心</h3>
         </div>
         <div class="contacts-list">
-          <div 
-            v-for="contact in contacts" 
+          <div
+            v-for="contact in contacts"
             :key="contact.id"
             class="contact-item"
             :class="{ active: currentContact?.id === contact.id }"
@@ -34,25 +32,20 @@
         </div>
       </div>
 
-      <!-- 右侧：聊天主区域 -->
       <div class="main-chat">
-        <!-- 无选中联系人时的占位 -->
         <div v-if="!currentContact" class="empty-chat">
           <el-empty description="选择一个联系人开始聊天吧" />
         </div>
-        
-        <!-- 聊天区域 -->
+
         <div v-else class="chat-window">
-          <!-- 聊天头部 -->
           <div class="chat-header">
             <span class="chat-title">与 {{ currentContact.username }} 沟通中</span>
           </div>
-          
-          <!-- 消息记录显示区 -->
+
           <div class="messages-area" ref="messagesAreaRef">
-            <div 
-              v-for="msg in currentMessages" 
-              :key="msg.id" 
+            <div
+              v-for="msg in currentMessages"
+              :key="msg.id"
               class="message-wrapper"
               :class="{ 'is-me': msg.sender_id === userInfo.id }"
             >
@@ -62,8 +55,7 @@
               <div class="message-time">{{ formatTime(msg.created_at) }}</div>
             </div>
           </div>
-          
-          <!-- 输入发送区 -->
+
           <div class="input-area">
             <el-input
               v-model="inputMsg"
@@ -103,11 +95,9 @@ const { userInfo } = storeToRefs(userStore)
 const messagesAreaRef = ref(null)
 const inputMsg = ref('')
 
-// 格式化时间辅助函数
-const formatShortTime = (timeStr) => timeStr.split(' ')[1].substring(0, 5) // 仅保留 HH:MM
-const formatTime = (timeStr) => timeStr.substring(5, 16) // 保留 MM-DD HH:MM
+const formatShortTime = (timeStr) => timeStr.split(' ')[1].substring(0, 5)
+const formatTime = (timeStr) => timeStr.substring(5, 16)
 
-// 滚动到聊天底部
 const scrollToBottom = async () => {
   await nextTick()
   if (messagesAreaRef.value) {
@@ -115,13 +105,11 @@ const scrollToBottom = async () => {
   }
 }
 
-// 选择联系人
 const selectContact = async (contactId) => {
   await chatStore.loadHistory(contactId)
   scrollToBottom()
 }
 
-// 发送消息
 const handleSend = () => {
   if (!inputMsg.value.trim() || !currentContact.value) return
   chatStore.sendMessage(currentContact.value.id, inputMsg.value.trim())
@@ -129,19 +117,16 @@ const handleSend = () => {
   scrollToBottom()
 }
 
-// 监听消息数组变化自动触底
 watch(currentMessages, () => {
   scrollToBottom()
 }, { deep: true })
 
 onMounted(async () => {
-  await chatStore.loadContacts() // 加载联系人列表
-  
-  // 核心逻辑：从商品详情页跳转过来时，路由可能带有 targetUserId
+  await chatStore.loadContacts()
+
   const targetUserId = route.query.userId
   if (targetUserId) {
     await selectContact(Number(targetUserId))
-    // 检查并更新左侧联系人列表，防止是第一次聊天
     chatStore.loadContacts()
   }
 })
@@ -149,7 +134,7 @@ onMounted(async () => {
 
 <style scoped>
 .chat-layout {
-  height: calc(100vh - 100px); /* 减去顶部导航高度 */
+  height: calc(100vh - 100px);
   padding-bottom: 24px;
 }
 .chat-card {
@@ -158,7 +143,6 @@ onMounted(async () => {
   box-shadow: var(--box-shadow-base);
 }
 
-/* 左侧联系人列表 */
 .sidebar {
   width: 280px;
   background-color: #fafbfc;
@@ -189,7 +173,7 @@ onMounted(async () => {
   border-bottom: 1px solid #f2f4f7;
 }
 .contact-item:hover {
-  background-color: rgba(88, 117, 88, 0.05); /* 极淡的东南绿悬浮 */
+  background-color: rgba(88, 117, 88, 0.05);
 }
 .contact-item.active {
   background-color: rgba(88, 117, 88, 0.1);
@@ -218,7 +202,6 @@ onMounted(async () => {
   color: #c0c4cc;
 }
 
-/* 右侧主聊天区 */
 .main-chat {
   flex: 1;
   display: flex;
@@ -243,12 +226,11 @@ onMounted(async () => {
   color: var(--seu-black);
 }
 
-/* 消息流转显示区 */
 .messages-area {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
-  background-color: var(--bg-color); /* #f4f6f8 */
+  background-color: var(--bg-color);
 }
 .message-wrapper {
   display: flex;
@@ -269,7 +251,7 @@ onMounted(async () => {
   background-color: #ffffff;
   color: var(--seu-black);
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  border-top-left-radius: 2px; /* 聊天气泡细节 */
+  border-top-left-radius: 2px;
 }
 .is-me .message-bubble {
   background-color: var(--seu-green);
@@ -288,7 +270,6 @@ onMounted(async () => {
   margin-right: 4px;
 }
 
-/* 输入发送区 */
 .input-area {
   padding: 16px 24px;
   background-color: #ffffff;

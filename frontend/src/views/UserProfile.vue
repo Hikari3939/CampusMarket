@@ -1,4 +1,3 @@
-<!-- src/views/UserProfile.vue -->
 <template>
   <div class="page-container">
     <el-breadcrumb separator="/" class="breadcrumb">
@@ -6,7 +5,6 @@
       <el-breadcrumb-item>{{ profileUser?.username }} 的主页</el-breadcrumb-item>
     </el-breadcrumb>
 
-    <!-- 用户信息头部 -->
     <div class="user-header" v-loading="loading">
       <template v-if="profileUser">
         <el-avatar :size="72" class="user-avatar">
@@ -28,7 +26,6 @@
       </template>
     </div>
 
-    <!-- 评价摘要 -->
     <div class="reviews-summary" v-if="profileUser && (profileUser.avg_rating > 0 || profileUser.review_count > 0)">
       <div class="reviews-header">
         <h3>信誉评价</h3>
@@ -36,7 +33,6 @@
       <div class="reviews-stats">
         <StarRating :model-value="profileUser.avg_rating" readonly :count="profileUser.review_count" :show-count="true" />
       </div>
-      <!-- 详细评价列表 -->
       <div class="reviews-list" v-if="reviews.length > 0">
         <div v-for="r in reviews" :key="r.id" class="review-item">
           <div class="review-top">
@@ -52,7 +48,6 @@
       </div>
     </div>
 
-    <!-- 在售商品 -->
     <h3 class="section-title" v-if="products.length > 0">
       TA 的在售商品 ({{ products.length }})
     </h3>
@@ -95,13 +90,10 @@ const fetchProfile = async () => {
     profileUser.value = res.data.user
     products.value = res.data.products
 
-    // 拉取评价
     try {
       const reviewRes = await getUserReviews(route.params.id)
       reviews.value = reviewRes.data.reviews
     } catch (e) {}
-  } catch (error) {
-    // handled by interceptor
   } finally {
     loading.value = false
   }
@@ -157,7 +149,6 @@ onMounted(() => fetchProfile())
   grid-column: 1 / -1;
 }
 
-/* 评价摘要 */
 .reviews-summary {
   margin-bottom: 32px;
   padding: 20px 0;
@@ -209,7 +200,6 @@ onMounted(() => fetchProfile())
   line-height: 1.5;
 }
 
-/* dark mode */
 html.dark .review-item {
   background-color: #1a1a2e;
 }

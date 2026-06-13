@@ -1,8 +1,6 @@
-<!-- src/views/Login.vue -->
 <template>
   <div class="login-container">
     <div class="login-box">
-      <!-- 左侧装饰区 (深邃蓝主题) -->
       <div class="login-banner">
         <h2>东南大学二手交易平台</h2>
         <p>安全·便捷·校园专属</p>
@@ -13,7 +11,6 @@
         </div>
       </div>
 
-      <!-- 右侧表单区 -->
       <div class="login-form-area">
         <el-tabs v-model="activeTab" class="custom-tabs">
           <el-tab-pane label="学生登录" name="login">
@@ -70,7 +67,6 @@ const registerFormRef = ref(null);
 const loginForm = ref({ email: '', password: '' });
 const registerForm = reactive({ username: '', email: '', password: '' });
 
-// 注册表单校验规则（前端初步校验）
 const validatePassword = (_rule, value, callback) => {
   if (!value) {
     callback(new Error('请输入密码'));
@@ -110,8 +106,6 @@ const handleLogin = async () => {
     userStore.setUserInfo(res.user);
     ElMessage.success('登录成功！');
     router.push('/');
-  } catch (error) {
-    // 错误在拦截器中已经处理提示
   } finally {
     loading.value = false;
   }
@@ -127,8 +121,6 @@ const handleRegister = async () => {
       ElMessage.success('注册成功，请登录');
       activeTab.value = 'login';
       loginForm.value.email = registerForm.email;
-    } catch (error) {
-      // 错误在拦截器中已经处理提示
     } finally {
       loading.value = false;
     }
@@ -151,13 +143,13 @@ const handleRegister = async () => {
   height: 480px;
   background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(35, 24, 21, 0.08); /* 使用标准黑的投影 */
+  box-shadow: 0 10px 30px rgba(35, 24, 21, 0.08);
   overflow: hidden;
 }
 
 .login-banner {
   flex: 1;
-  background-color: var(--seu-dark-blue); /* 深邃蓝 */
+  background-color: var(--seu-dark-blue);
   color: white;
   padding: 40px;
   display: flex;
@@ -177,7 +169,6 @@ const handleRegister = async () => {
   margin-bottom: 40px;
 }
 
-/* 品牌色块装饰 */
 .vis-color-blocks {
   display: flex;
   gap: 10px;
@@ -201,10 +192,9 @@ const handleRegister = async () => {
   width: 100%;
   margin-top: 10px;
   font-weight: bold;
-  border-radius: 6px; /* 扁平化圆角 */
+  border-radius: 6px;
 }
 
-/* 注册按钮使用辅助色活力橙进行视觉区分 */
 .register-btn {
   background-color: var(--seu-orange);
   border-color: var(--seu-orange);
@@ -216,7 +206,6 @@ const handleRegister = async () => {
   color: white;
 }
 
-/* 密码规则提示 */
 .password-hint {
   font-size: 12px;
   color: var(--text-light);
@@ -224,7 +213,6 @@ const handleRegister = async () => {
   line-height: 1.4;
 }
 
-/* 修改 Element Plus 的 Tab 样式实现极简风格 */
 :deep(.el-tabs__nav-wrap::after) {
   height: 1px;
   background-color: #e4e7ed;

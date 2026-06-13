@@ -1,12 +1,10 @@
 <template>
   <div class="image-gallery">
-    <!-- 无图片时的占位 -->
     <div v-if="!images || images.length === 0" class="gallery-placeholder">
       <el-icon :size="48"><Picture /></el-icon>
       <span>暂无图片</span>
     </div>
 
-    <!-- 单图时直接显示，无需轮播 -->
     <template v-else-if="images.length === 1">
       <el-image
         :src="images[0]"
@@ -23,7 +21,6 @@
       </el-image>
     </template>
 
-    <!-- 多图时使用轮播 -->
     <template v-else>
       <el-carousel :interval="5000" arrow="hover" indicator-position="outside" height="400px" class="gallery-carousel">
         <el-carousel-item v-for="(img, idx) in images" :key="idx">

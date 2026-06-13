@@ -1,6 +1,5 @@
 <template>
   <el-card class="product-card" :body-style="{ padding: '0px' }">
-    <!-- 商品主图 -->
     <div class="image-wrapper">
       <el-image
         :src="product.image_url"
@@ -14,7 +13,6 @@
           </div>
         </template>
       </el-image>
-      <!-- 收藏按钮 -->
       <div class="fav-btn" v-if="userStore.token" @click.stop="handleToggleFavorite">
         <el-icon :size="20" :color="isFavorited ? '#F56C6C' : '#ccc'">
           <StarFilled v-if="isFavorited" />
@@ -23,11 +21,10 @@
       </div>
     </div>
 
-    <!-- 商品信息 -->
     <div class="product-info">
       <h3 class="title el-input__inner">{{ product.title }}</h3>
       <p class="desc">{{ product.description || '卖家很懒，没有留下描述' }}</p>
-      
+
       <div class="bottom-bar">
         <span class="text-price">¥ {{ product.price }}</span>
         <span class="seller-name" @click.stop="goToSeller">
@@ -38,7 +35,6 @@
         </span>
       </div>
 
-      <!-- 删除按钮，仅当当前登录用户是卖家时显示 -->
       <div class="action-bar" v-if="isSeller">
         <el-button type="danger" text @click.stop="handleDelete">下架删除</el-button>
       </div>
@@ -63,7 +59,6 @@ const emit = defineEmits(['delete'])
 const userStore = useUserStore()
 const isFavorited = ref(false)
 
-// 判断当前商品是否为当前登录用户发布
 const isSeller = computed(() => {
   return userStore.userInfo && userStore.userInfo.id === props.product.seller_id
 })
@@ -80,12 +75,9 @@ const handleToggleFavorite = async () => {
   try {
     const res = await toggleFavorite(props.product.id)
     isFavorited.value = res.data.is_favorited
-  } catch (e) {
-    // handled by interceptor
-  }
+  } catch (e) {}
 }
 
-// 检查收藏状态
 onMounted(async () => {
   if (userStore.token && props.product.id) {
     try {
@@ -105,7 +97,7 @@ onMounted(async () => {
 }
 .image-wrapper {
   width: 100%;
-  padding-top: 100%; /* 1:1 占位 */
+  padding-top: 100%;
   position: relative;
   background-color: #fafafa;
 }

@@ -12,31 +12,30 @@ const routes = [
     name: 'Home',
     component: () => import('../views/Home.vue'),
   },
-  { 
+  {
     path: '/product/:id',
     component: () => import('../views/ProductDetail.vue')
   },
-  { 
-    path: '/publish', 
+  {
+    path: '/publish',
     component: () => import('../views/Publish.vue'),
-    meta: { requiresAuth: true } // 需要登录
+    meta: { requiresAuth: true }
   },
   {
     path: '/profile',
     name: 'Profile',
     component: () => import('../views/Profile.vue'),
-    meta: { requiresAuth: true } // 需要登录
+    meta: { requiresAuth: true }
   },
   {
     path: '/chat',
     component: () => import('../views/Chat.vue'),
-    meta: { requiresAuth: true } // 需要登录
+    meta: { requiresAuth: true }
   },
   {
     path: '/user/:id',
     name: 'UserProfile',
     component: () => import('../views/UserProfile.vue'),
-    // 公开页面，无需登录
   }
 ];
 
@@ -45,12 +44,10 @@ const router = createRouter({
   routes
 });
 
-// 路由守卫
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore();
-  // 判断目标路由是否需要鉴权，且当前用户没有 token
   if (to.meta.requiresAuth && !userStore.token) {
-    next('/login'); // 未登录，强制去登录页
+    next('/login');
   } else {
     next();
   }
